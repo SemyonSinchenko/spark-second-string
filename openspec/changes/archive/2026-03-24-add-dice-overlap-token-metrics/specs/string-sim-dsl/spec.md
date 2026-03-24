@@ -1,10 +1,4 @@
-# String Similarity DSL
-
-## Purpose
-
-Define the primary developer-facing API for string similarity expressions through Scala/Java DSL, with optional SQL registration via thin SparkSession extension.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: DSL-first expression access
 The system SHALL expose string similarity expressions as first-class Scala/Java DSL constructs.

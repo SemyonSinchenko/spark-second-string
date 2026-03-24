@@ -83,7 +83,7 @@ lazy val benchmarks = (project in file("benchmarks"))
     name := "spark-second-string-benchmarks",
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value % Runtime
+      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value
     )
   )
   .dependsOn(root)

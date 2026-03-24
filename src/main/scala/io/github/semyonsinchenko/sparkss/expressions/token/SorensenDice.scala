@@ -5,52 +5,25 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-/** Jaccard similarity between two strings based on token sets.
-  *
-  * Computes the Jaccard similarity coefficient: |intersection| / |union| where intersection and union are computed over
-  * the set of tokens (whitespace-separated).
-  *
-  * @param left
-  *   first string expression
-  * @param right
-  *   second string expression
-  *
-  * @example
-  *   {{{
-  *   val jaccard = Jaccard(col("a"), col("b"))
-  *   }}}
-  */
-case class Jaccard(left: Expression, right: Expression) extends TokenMetricExpression {
+case class SorensenDice(left: Expression, right: Expression) extends TokenMetricExpression {
 
-  private final val JaccardModule = "io.github.semyonsinchenko.sparkss.expressions.token.Jaccard$.MODULE$"
+  private final val SorensenDiceModule =
+    "io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice$.MODULE$"
 
   override def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
     copy(left = newLeft, right = newRight)
   }
 
-  /** Compute Jaccard similarity between two strings.
-    *
-    * Tokenizes both strings on whitespace, then computes:
-    * - |intersection| / |union|
-    *
-    * Edge cases:
-    * - Both empty strings: returns 1.0 (identical empty sets)
-    * - One empty string: returns 0.0 (no overlap)
-    *
-    * @param left first string
-    * @param right second string
-    * @return Jaccard similarity score between 0.0 and 1.0
-    */
   override protected def evalTokenMetric(left: UTF8String, right: UTF8String): Double = {
-    Jaccard.similarity(left, right)
+    SorensenDice.similarity(left, right)
   }
 
   override protected def genTokenMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
-    s"$JaccardModule.similarity($leftValue, $rightValue)"
+    s"$SorensenDiceModule.similarity($leftValue, $rightValue)"
   }
 }
 
-object Jaccard {
+object SorensenDice {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
     val leftString = left.toString
@@ -66,9 +39,9 @@ object Jaccard {
     val leftTokens = tokenizeToSet(leftString)
     val rightTokens = tokenizeToSet(rightString)
     val interSize = intersectionSize(leftTokens, rightTokens)
-    val unionSize = leftTokens.size + rightTokens.size - interSize
+    val denominator = leftTokens.size + rightTokens.size
 
-    if (unionSize == 0) 1.0 else interSize.toDouble / unionSize.toDouble
+    if (denominator == 0) 1.0 else (2.0 * interSize.toDouble) / denominator.toDouble
   }
 
   private def tokenizeToSet(value: String): java.util.HashSet[String] = {

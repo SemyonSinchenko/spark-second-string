@@ -1,6 +1,8 @@
 package io.github.semyonsinchenko.sparkss
 
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
+import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
+import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.functions.col
@@ -16,6 +18,28 @@ object StringSimilarityFunctions {
 
   def jaccard(left: String, right: String): Column = {
     jaccard(col(left), col(right))
+  }
+
+  def sorensenDice(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(SorensenDice(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def sorensenDice(left: String, right: String): Column = {
+    sorensenDice(col(left), col(right))
+  }
+
+  def overlapCoefficient(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(OverlapCoefficient(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def overlapCoefficient(left: String, right: String): Column = {
+    overlapCoefficient(col(left), col(right))
   }
 
   private def convertColumnNodeToExpression(node: AnyRef): Expression = {
