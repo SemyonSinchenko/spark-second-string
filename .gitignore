@@ -1,0 +1,9 @@
+.opencode
+.qwen
+target
+project
+*.metals
+*~
+#*
+*.bloop
+*.bsp
