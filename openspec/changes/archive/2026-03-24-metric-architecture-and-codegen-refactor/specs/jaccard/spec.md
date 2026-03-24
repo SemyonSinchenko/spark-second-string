@@ -1,10 +1,4 @@
-# Jaccard
-
-## Purpose
-
-Provide a token-based Jaccard similarity metric implemented on top of the unified string-similarity expression contract.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Jaccard similarity implementation
 The system SHALL provide a `Jaccard` expression for token-set Jaccard similarity between two strings.

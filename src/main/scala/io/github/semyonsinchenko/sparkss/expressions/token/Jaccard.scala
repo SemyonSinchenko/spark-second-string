@@ -1,8 +1,9 @@
 package io.github.semyonsinchenko.sparkss.expressions.token
 
-import io.github.semyonsinchenko.sparkss.expressions.StringSimExpression
+import io.github.semyonsinchenko.sparkss.expressions.TokenMetricExpression
 import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
+import org.apache.spark.unsafe.types.UTF8String
 
 /** Jaccard similarity between two strings based on token sets.
   *
@@ -19,7 +20,9 @@ import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCo
   *   val jaccard = Jaccard(col("a"), col("b"))
   *   }}}
   */
-case class Jaccard(left: Expression, right: Expression) extends StringSimExpression {
+case class Jaccard(left: Expression, right: Expression) extends TokenMetricExpression {
+
+  private final val JaccardModule = "io.github.semyonsinchenko.sparkss.expressions.token.Jaccard$.MODULE$"
 
   override def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
     copy(left = newLeft, right = newRight)
@@ -38,97 +41,78 @@ case class Jaccard(left: Expression, right: Expression) extends StringSimExpress
     * @param right second string
     * @return Jaccard similarity score between 0.0 and 1.0
     */
-  override protected[sparkss] def getSim(left: String, right: String): Double = {
-    // Handle empty string edge cases
-    val leftEmpty = left.isEmpty
-    val rightEmpty = right.isEmpty
+  override protected def evalTokenMetric(left: UTF8String, right: UTF8String): Double = {
+    Jaccard.similarity(left, right)
+  }
 
-    if (leftEmpty && rightEmpty) {
+  override protected def genTokenMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
+    s"$JaccardModule.similarity($leftValue, $rightValue)"
+  }
+}
+
+object Jaccard {
+
+  private[token] def similarity(left: UTF8String, right: UTF8String): Double = {
+    val leftString = left.toString
+    val rightString = right.toString
+
+    if (leftString.isEmpty && rightString.isEmpty) {
       return 1.0
     }
-    if (leftEmpty || rightEmpty) {
+    if (leftString.isEmpty || rightString.isEmpty) {
       return 0.0
     }
 
-    // Tokenize strings using mutable collection to minimize GC pressure
-    val leftTokens = tokenize(left)
-    val rightTokens = tokenize(right)
+    val leftTokens = tokenizeToSet(leftString)
+    val rightTokens = tokenizeToSet(rightString)
+    val interSize = intersectionSize(leftTokens, rightTokens)
+    val unionSize = leftTokens.size + rightTokens.size - interSize
 
-    // Compute intersection and union sizes using mutable sets
-    val intersectionSize = computeIntersectionSize(leftTokens, rightTokens)
-    val unionSize = leftTokens.size + rightTokens.size - intersectionSize
-
-    if (unionSize == 0) {
-      1.0
-    } else {
-      intersectionSize.toDouble / unionSize.toDouble
-    }
+    if (unionSize == 0) 1.0 else interSize.toDouble / unionSize.toDouble
   }
 
-  /** Tokenize a string on whitespace using mutable collection.
-    *
-    * @param str
-    *   the string to tokenize
-    * @return
-    *   mutable set of tokens
-    */
-  private def tokenize(str: String): scala.collection.mutable.HashSet[String] = {
-    val tokens = new scala.collection.mutable.HashSet[String]()
-    var i = 0
-    val len = str.length
-    var start = 0
+  private def tokenizeToSet(value: String): java.util.HashSet[String] = {
+    val tokens = new java.util.HashSet[String]()
+    val length = value.length
     var inToken = false
+    var tokenStart = 0
+    var index = 0
 
-    while (i < len) {
-      val c = str.charAt(i)
-      if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+    while (index < length) {
+      if (Character.isWhitespace(value.charAt(index))) {
         if (inToken) {
-          tokens.add(str.substring(start, i))
+          tokens.add(value.substring(tokenStart, index))
           inToken = false
         }
-      } else {
-        if (!inToken) {
-          start = i
-          inToken = true
-        }
+      } else if (!inToken) {
+        tokenStart = index
+        inToken = true
       }
-      i += 1
+      index += 1
     }
 
-    // Add the last token if any
     if (inToken) {
-      tokens.add(str.substring(start, len))
+      tokens.add(value.substring(tokenStart, length))
     }
 
     tokens
   }
 
-  /** Compute the size of intersection between two token sets.
-    *
-    * @param leftTokens
-    *   first set of tokens
-    * @param rightTokens
-    *   second set of tokens
-    * @return
-    *   number of tokens in the intersection
-    */
-  private def computeIntersectionSize(
-      leftTokens: scala.collection.mutable.HashSet[String],
-      rightTokens: scala.collection.mutable.HashSet[String]
-  ): Int = {
+  private def intersectionSize(leftTokens: java.util.HashSet[String], rightTokens: java.util.HashSet[String]): Int = {
+    var smaller = leftTokens
+    var larger = rightTokens
+    if (leftTokens.size > rightTokens.size) {
+      smaller = rightTokens
+      larger = leftTokens
+    }
+
     var count = 0
-    val iter = leftTokens.iterator
-    while (iter.hasNext) {
-      if (rightTokens.contains(iter.next())) {
+    val iterator = smaller.iterator()
+    while (iterator.hasNext) {
+      if (larger.contains(iterator.next())) {
         count += 1
       }
     }
     count
-  }
-
-  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    // TODO: Implement code generation for Jaccard similarity
-    // For now, rely on interpreted execution via CodegenFallback
-    null
   }
 }

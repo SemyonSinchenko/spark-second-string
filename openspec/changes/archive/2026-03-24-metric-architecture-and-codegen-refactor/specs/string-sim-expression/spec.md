@@ -1,10 +1,4 @@
-# String Similarity Expression
-
-## Purpose
-
-Define a stable Catalyst expression contract for binary string similarity metrics that supports both token-based and matrix-based metric families.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Unified binary expression contract
 The system SHALL provide a unified binary expression contract for string similarity metrics with output type Double.

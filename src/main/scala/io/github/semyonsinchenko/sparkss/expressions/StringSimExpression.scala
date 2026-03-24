@@ -1,12 +1,12 @@
 package io.github.semyonsinchenko.sparkss.expressions
 
 import java.io.Serializable
-import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure, TypeCheckSuccess}
-import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode, CodegenFallback}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, ImplicitCastInputTypes}
 import org.apache.spark.sql.types.{DataType, DoubleType, StringType}
+import org.apache.spark.unsafe.types.UTF8String
 
 /** Abstract base class for string similarity Catalyst expressions.
   *
@@ -26,9 +26,11 @@ import org.apache.spark.sql.types.{DataType, DoubleType, StringType}
   *   }
   *   }}}
   */
-abstract class StringSimExpression extends BinaryExpression with CodegenFallback with Serializable {
+abstract class StringSimExpression extends BinaryExpression with ImplicitCastInputTypes with Serializable {
 
   override def dataType: DoubleType = DoubleType
+
+  final override def inputTypes: Seq[DataType] = Seq(StringType, StringType)
 
   override def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
     throw new UnsupportedOperationException("withNewChildrenInternal should be implemented by concrete subclasses")
@@ -62,7 +64,9 @@ abstract class StringSimExpression extends BinaryExpression with CodegenFallback
     * @return
     *   similarity score between 0.0 and 1.0
     */
-  protected[sparkss] def getSim(left: String, right: String): Double
+  protected def evalSimilarity(left: UTF8String, right: UTF8String): Double
+
+  protected def genSimilarityCode(ctx: CodegenContext, leftValue: String, rightValue: String): String
 
   /** Null-safe evaluation of the similarity function.
     *
@@ -76,36 +80,52 @@ abstract class StringSimExpression extends BinaryExpression with CodegenFallback
     *   similarity score as Double, or null if either input is null
     */
   final override protected def nullSafeEval(left: Any, right: Any): Any = {
-    val leftStr = left.asInstanceOf[String]
-    val rightStr = right.asInstanceOf[String]
-    val result = getSim(leftStr, rightStr)
-    java.lang.Double.valueOf(result)
+    val leftUtf8 = left.asInstanceOf[UTF8String]
+    val rightUtf8 = right.asInstanceOf[UTF8String]
+    java.lang.Double.valueOf(evalSimilarity(leftUtf8, rightUtf8))
   }
 
-  /** Evaluate the expression on an input row.
-    *
-    * Handles null inputs by returning null. Validates and casts inputs to strings, then calls getSim and wraps the
-    * result.
-    *
-    * @param input
-    *   the input row
-    * @return
-    *   similarity score as Any (Double or null)
-    */
-  final override def eval(input: InternalRow): Any = {
-    if (isNullAt(input, 0) || isNullAt(input, 1)) {
-      null
-    } else {
-      val leftStr = input.getString(0)
-      val rightStr = input.getString(1)
-      val result = getSim(leftStr, rightStr)
-      java.lang.Double.valueOf(result)
-    }
+  final override protected def doGenCode(
+      ctx: org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext,
+      ev: org.apache.spark.sql.catalyst.expressions.codegen.ExprCode
+  ): org.apache.spark.sql.catalyst.expressions.codegen.ExprCode = {
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      (leftValue, rightValue) => {
+        val scoreExpr = genSimilarityCode(ctx, leftValue, rightValue)
+        s"${ev.value} = $scoreExpr;"
+      }
+    )
+  }
+}
+
+abstract class TokenMetricExpression extends StringSimExpression {
+
+  protected def evalTokenMetric(left: UTF8String, right: UTF8String): Double
+
+  protected def genTokenMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String
+
+  final override protected def evalSimilarity(left: UTF8String, right: UTF8String): Double = {
+    evalTokenMetric(left, right)
   }
 
-  /** Check if a value at the given ordinal is null.
-    */
-  private def isNullAt(input: InternalRow, ordinal: Int): Boolean = {
-    input.isNullAt(ordinal)
+  final override protected def genSimilarityCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
+    genTokenMetricCode(ctx, leftValue, rightValue)
+  }
+}
+
+abstract class MatrixMetricExpression extends StringSimExpression {
+
+  protected def evalMatrixMetric(left: UTF8String, right: UTF8String): Double
+
+  protected def genMatrixMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String
+
+  final override protected def evalSimilarity(left: UTF8String, right: UTF8String): Double = {
+    evalMatrixMetric(left, right)
+  }
+
+  final override protected def genSimilarityCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
+    genMatrixMetricCode(ctx, leftValue, rightValue)
   }
 }
