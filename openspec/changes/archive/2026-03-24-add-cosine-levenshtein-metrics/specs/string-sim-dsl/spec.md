@@ -1,10 +1,4 @@
-# String Similarity DSL
-
-## Purpose
-
-Define the primary developer-facing API for string similarity expressions through Scala/Java DSL, with optional SQL registration via thin SparkSession extension.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: DSL-first expression access
 The system SHALL expose string similarity expressions as first-class Scala/Java DSL constructs.
@@ -22,10 +16,3 @@ The system SHALL provide an optional thin SparkSession extension for SQL registr
 - **THEN** they SHALL be able to register functions via SparkSession extension
 - **THEN** this registration layer SHALL remain thin and defer to existing DSL expression implementations
 - **THEN** registration SHALL include `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, and `levenshtein`
-
-### Requirement: Scope boundary for this phase
-The system SHALL keep advanced SQL ergonomics out of scope in this phase.
-
-#### Scenario: Non-goal enforcement
-- **WHEN** planning this phase
-- **THEN** SQL-first API design, SQL-specific optimizations, and SQL-only feature surface SHALL be out of scope

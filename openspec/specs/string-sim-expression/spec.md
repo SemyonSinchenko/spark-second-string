@@ -30,11 +30,12 @@ The unified contract SHALL support both token-based and matrix-based metric impl
 #### Scenario: Token metric compatibility
 - **WHEN** a token-based metric is implemented
 - **THEN** it SHALL conform to the unified binary expression contract
-- **THEN** the contract SHALL support multiple token metrics including `jaccard`, `sorensen_dice`, and `overlap_coefficient`
+- **THEN** the contract SHALL support multiple token metrics including `jaccard`, `sorensen_dice`, `overlap_coefficient`, and `cosine`
 
 #### Scenario: Matrix metric compatibility
 - **WHEN** a matrix-based metric is implemented
 - **THEN** it SHALL conform to the unified binary expression contract
+- **THEN** the contract SHALL support normalized matrix metrics including `levenshtein`
 
 ### Requirement: Interpreted and codegen parity
 String similarity expressions SHALL provide consistent behavior between interpreted evaluation and generated code.
@@ -49,8 +50,8 @@ String similarity expressions SHALL provide consistent behavior between interpre
 - **THEN** it SHALL NOT return placeholder or null code objects
 
 #### Scenario: Per-metric parity enforcement
-- **WHEN** token metrics are expanded
-- **THEN** parity validation SHALL include `jaccard`, `sorensen_dice`, and `overlap_coefficient`
+- **WHEN** token and matrix metrics are expanded
+- **THEN** parity validation SHALL include `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, and `levenshtein`
 
 ### Requirement: DSL-first API direction
 The system SHALL prioritize Scala/Java DSL usage for string similarity expressions.

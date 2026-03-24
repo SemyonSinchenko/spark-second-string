@@ -1,5 +1,7 @@
 package io.github.semyonsinchenko.sparkss.sql
 
+import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
+import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
 import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
 import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
@@ -15,6 +17,8 @@ object StringSimilaritySparkSessionExtensions {
       registerJaccard(spark)
       registerSorensenDice(spark)
       registerOverlapCoefficient(spark)
+      registerCosine(spark)
+      registerLevenshtein(spark)
     }
   }
 
@@ -64,6 +68,40 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("overlap_coefficient"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerCosine(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[Cosine].getName, "cosine")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => Cosine(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function cosine expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("cosine"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerLevenshtein(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[Levenshtein].getName, "levenshtein")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => Levenshtein(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function levenshtein expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("levenshtein"),
       expressionInfo,
       builder
     )

@@ -267,4 +267,145 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(dslScore === 0.5)
     assert(sqlScore === dslScore)
   }
+
+  test("cosine expression propagates null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("a b"), Some("a")),
+      (None, Some("a")),
+      (Some("a"), None)
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.cosine(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.get(0))
+
+    assert(scores(0) == (1.0 / Math.sqrt(2.0)))
+    assert(scores(1) == null)
+    assert(scores(2) == null)
+  }
+
+  test("levenshtein expression propagates null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("spark"), Some("spork")),
+      (None, Some("a")),
+      (Some("a"), None)
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.levenshtein(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.get(0))
+
+    assert(scores(0) == 0.8)
+    assert(scores(1) == null)
+    assert(scores(2) == null)
+  }
+
+  test("cosine and levenshtein evaluate nested child expressions correctly") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("hello", "hello world", "spark", "spork")).toDF("prefix", "target", "a", "b")
+
+    val row = frame
+      .select(
+        StringSimilarityFunctions
+          .cosine(concat_ws(" ", col("prefix"), lit("world")), trim(col("target")))
+          .as("cosine"),
+        StringSimilarityFunctions
+          .levenshtein(trim(col("a")), trim(col("b")))
+          .as("levenshtein")
+      )
+      .head()
+
+    assert(row.getDouble(0) === 1.0)
+    assert(row.getDouble(1) === 0.8)
+  }
+
+  test("cosine and levenshtein interpreted and codegen execution return identical outputs") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("a b c", "a b d"),
+      ("", ""),
+      ("", "x"),
+      ("x x y", "x y"),
+      ("spark", "spork"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val generatedCosine = evaluateWithCodegen(frame, StringSimilarityFunctions.cosine, enabled = true)
+    val interpretedCosine = evaluateWithCodegen(frame, StringSimilarityFunctions.cosine, enabled = false)
+    val generatedLevenshtein = evaluateWithCodegen(frame, StringSimilarityFunctions.levenshtein, enabled = true)
+    val interpretedLevenshtein = evaluateWithCodegen(frame, StringSimilarityFunctions.levenshtein, enabled = false)
+
+    assert(generatedCosine == interpretedCosine)
+    assert(generatedLevenshtein == interpretedLevenshtein)
+  }
+
+  test("cosine and levenshtein dsl constructors and sql registration use the same expression") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("a b", "a c"), ("spark", "spork")).toDF("left", "right")
+
+    val dslCosine = frame
+      .select(StringSimilarityFunctions.cosine("left", "right").as("score"))
+      .head()
+      .getDouble(0)
+    val dslLevenshtein = frame
+      .select(StringSimilarityFunctions.levenshtein("left", "right").as("score"))
+      .collect()(1)
+      .getDouble(0)
+
+    spark.registerStringSimilarityFunctions()
+    frame.createOrReplaceTempView("pairs")
+    val sqlCosine = spark.sql("SELECT cosine(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlLevenshtein = spark.sql("SELECT levenshtein(left, right) AS score FROM pairs").collect()(1).getDouble(0)
+
+    assert(sqlCosine === dslCosine)
+    assert(sqlLevenshtein === dslLevenshtein)
+  }
+
+  test("token and matrix metric families preserve interpreted and codegen parity") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("a b c", "a b d"),
+      ("", ""),
+      ("", "x"),
+      ("x x y", "x y"),
+      ("spark", "spork"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val tokenMetrics = Seq(
+      "jaccard" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaccard(left, right)),
+      "sorensen_dice" -> ((left: Column, right: Column) => StringSimilarityFunctions.sorensenDice(left, right)),
+      "overlap_coefficient" -> ((left: Column, right: Column) =>
+        StringSimilarityFunctions.overlapCoefficient(left, right)
+      ),
+      "cosine" -> ((left: Column, right: Column) => StringSimilarityFunctions.cosine(left, right))
+    )
+    val matrixMetrics = Seq(
+      "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right))
+    )
+
+    (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
+      val generated = evaluateWithCodegen(frame, metric, enabled = true)
+      val interpreted = evaluateWithCodegen(frame, metric, enabled = false)
+      assert(generated == interpreted, s"Codegen parity failed for $name")
+    }
+  }
 }

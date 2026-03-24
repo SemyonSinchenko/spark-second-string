@@ -3,6 +3,8 @@ package io.github.semyonsinchenko.sparkss
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
 import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
 import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
+import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
+import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.functions.col
@@ -40,6 +42,28 @@ object StringSimilarityFunctions {
 
   def overlapCoefficient(left: String, right: String): Column = {
     overlapCoefficient(col(left), col(right))
+  }
+
+  def cosine(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(Cosine(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def cosine(left: String, right: String): Column = {
+    cosine(col(left), col(right))
+  }
+
+  def levenshtein(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(Levenshtein(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def levenshtein(left: String, right: String): Column = {
+    levenshtein(col(left), col(right))
   }
 
   private def convertColumnNodeToExpression(node: AnyRef): Expression = {
