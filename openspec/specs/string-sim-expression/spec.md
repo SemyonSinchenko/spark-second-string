@@ -30,7 +30,7 @@ The unified contract SHALL support both token-based and matrix-based metric impl
 #### Scenario: Token metric compatibility
 - **WHEN** a token-based metric is implemented
 - **THEN** it SHALL conform to the unified binary expression contract
-- **THEN** the contract SHALL support multiple token metrics including `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, and `braun_blanquet`
+- **THEN** the contract SHALL support multiple token metrics including `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, `braun_blanquet`, and `monge_elkan`
 
 #### Scenario: Matrix metric compatibility
 - **WHEN** a matrix-based metric is implemented
@@ -51,7 +51,12 @@ String similarity expressions SHALL provide consistent behavior between interpre
 
 #### Scenario: Per-metric parity enforcement
 - **WHEN** token and matrix metrics are expanded
-- **THEN** parity validation SHALL include `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, `braun_blanquet`, `levenshtein`, `lcs_similarity`, `jaro`, `jaro_winkler`, `needleman_wunsch`, and `smith_waterman`
+- **THEN** parity validation SHALL include `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, `braun_blanquet`, `monge_elkan`, `levenshtein`, `lcs_similarity`, `jaro`, `jaro_winkler`, `needleman_wunsch`, and `smith_waterman`
+
+#### Scenario: Nested-expression and null parity
+- **WHEN** `monge_elkan` is evaluated inside nested Catalyst expressions under interpreted and code-generated execution
+- **THEN** both execution paths SHALL produce identical results for identical non-null inputs
+- **THEN** both execution paths SHALL preserve identical NULL propagation semantics
 
 ### Requirement: DSL-first API direction
 The system SHALL prioritize Scala/Java DSL usage for string similarity expressions.
