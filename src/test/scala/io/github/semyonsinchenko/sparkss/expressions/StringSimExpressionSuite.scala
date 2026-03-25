@@ -372,6 +372,56 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(scores(2) == null)
   }
 
+  test("smith waterman expression propagates null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("spark"), Some("spork")),
+      (None, Some("a")),
+      (Some("a"), None)
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.smithWaterman(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.get(0))
+
+    assertClose(scores(0).asInstanceOf[Double], 0.7)
+    assert(scores(1) == null)
+    assert(scores(2) == null)
+  }
+
+  test("smith waterman covers required edge-case corpus") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("", ""),
+      ("", "spark"),
+      ("spark", "spark"),
+      ("abc", "xyz"),
+      ("aaaa", "aaab"),
+      ("abcdef", "cde"),
+      ("   ", "  "),
+      ("!@#", "!@!")
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.smithWaterman(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.getDouble(0))
+
+    assertClose(scores(0), 1.0)
+    assertClose(scores(1), 0.0)
+    assertClose(scores(2), 1.0)
+    assertClose(scores(3), 0.0)
+    assertClose(scores(4), 0.75)
+    assertClose(scores(5), 1.0)
+    assertClose(scores(6), 1.0)
+    assertClose(scores(7), 2.0 / 3.0)
+  }
+
   test("braun blanquet and lcs similarity expressions propagate null values") {
     val s = spark
     import s.implicits._
@@ -471,6 +521,24 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       .getDouble(0)
 
     assert(score === 0.8)
+  }
+
+  test("smith waterman evaluates nested child expressions correctly") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq((" spark ", "spork ")).toDF("a", "b")
+
+    val score = frame
+      .select(
+        StringSimilarityFunctions
+          .smithWaterman(trim(col("a")), trim(col("b")))
+          .as("smith_waterman")
+      )
+      .head()
+      .getDouble(0)
+
+    assertClose(score, 0.7)
   }
 
   test("braun blanquet and lcs similarity evaluate nested child expressions correctly") {
@@ -576,6 +644,68 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(generated == interpreted)
   }
 
+  test("smith waterman interpreted and codegen execution return identical outputs") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("spark", "spork"),
+      ("", ""),
+      ("", "x"),
+      ("aaaa", "aaab"),
+      ("abcdef", "cde"),
+      ("   ", "  "),
+      ("!@#", "!@!"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.smithWaterman, enabled = true)
+    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.smithWaterman, enabled = false)
+
+    assert(generated == interpreted)
+  }
+
+  test("smith waterman interpreted and codegen parity holds for nested expressions") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("spark", "spork"),
+      ("alpha", "alphx"),
+      ("", ""),
+      ("  padded", "padded  ")
+    ).toDF("left", "right")
+
+    val generated = {
+      spark.conf.set("spark.sql.codegen.wholeStage", "true")
+      frame
+        .select(
+          StringSimilarityFunctions
+            .smithWaterman(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .as("score")
+        )
+        .collect()
+        .map(_.getDouble(0))
+        .toSeq
+    }
+
+    val interpreted = {
+      spark.conf.set("spark.sql.codegen.wholeStage", "false")
+      frame
+        .select(
+          StringSimilarityFunctions
+            .smithWaterman(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .as("score")
+        )
+        .collect()
+        .map(_.getDouble(0))
+        .toSeq
+    }
+
+    assert(generated == interpreted)
+  }
+
   test("jaro codegen execution path returns concrete scores") {
     val s = spark
     import s.implicits._
@@ -624,6 +754,23 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(rows(0).getDouble(0) === 0.8)
+    assert(rows(1).getDouble(0) === 0.0)
+  }
+
+  test("smith waterman codegen execution path returns concrete scores") {
+    val s = spark
+    import s.implicits._
+
+    spark.conf.set("spark.sql.codegen.wholeStage", "true")
+
+    val rows = Seq(
+      ("spark", "spork"),
+      ("abc", "xyz")
+    ).toDF("left", "right")
+      .select(StringSimilarityFunctions.smithWaterman(col("left"), col("right")).as("score"))
+      .collect()
+
+    assertClose(rows(0).getDouble(0), 0.7)
     assert(rows(1).getDouble(0) === 0.0)
   }
 
@@ -731,6 +878,25 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(sqlScore === dslScore)
   }
 
+  test("smith waterman dsl constructors and sql registration use the same expression") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("spark", "spork")).toDF("left", "right")
+
+    val dslScore = frame
+      .select(StringSimilarityFunctions.smithWaterman("left", "right").as("score"))
+      .head()
+      .getDouble(0)
+
+    spark.registerStringSimilarityFunctions()
+    frame.createOrReplaceTempView("pairs")
+    val sqlScore = spark.sql("SELECT smith_waterman(left, right) AS score FROM pairs").head().getDouble(0)
+
+    assertClose(dslScore, 0.7)
+    assert(sqlScore === dslScore)
+  }
+
   test("registered sql metrics enforce two-argument arity") {
     spark.registerStringSimilarityFunctions()
 
@@ -744,7 +910,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "lcs_similarity",
       "jaro",
       "jaro_winkler",
-      "needleman_wunsch"
+      "needleman_wunsch",
+      "smith_waterman"
     )
 
     metricNames.foreach { metric =>
@@ -806,13 +973,41 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "lcs_similarity" -> ((left: Column, right: Column) => StringSimilarityFunctions.lcsSimilarity(left, right)),
       "jaro" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaro(left, right)),
       "jaro_winkler" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right)),
-      "needleman_wunsch" -> ((left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right))
+      "needleman_wunsch" -> ((left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right)),
+      "smith_waterman" -> ((left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right))
     )
 
     (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
       val generated = evaluateWithCodegen(frame, metric, enabled = true)
       val interpreted = evaluateWithCodegen(frame, metric, enabled = false)
       assert(generated == interpreted, s"Codegen parity failed for $name")
+    }
+  }
+
+  test("dsl and sql metric rosters preserve naming and arity parity") {
+    spark.registerStringSimilarityFunctions()
+
+    val dslMetrics = Seq(
+      "jaccard",
+      "sorensen_dice",
+      "overlap_coefficient",
+      "cosine",
+      "braun_blanquet",
+      "levenshtein",
+      "lcs_similarity",
+      "jaro",
+      "jaro_winkler",
+      "needleman_wunsch",
+      "smith_waterman"
+    )
+
+    dslMetrics.foreach { metric =>
+      val registered = spark.sql(s"SHOW FUNCTIONS LIKE '$metric'").collect().nonEmpty
+      assert(registered, s"SQL registry missing metric: $metric")
+
+      intercept[IllegalArgumentException] {
+        spark.sql(s"SELECT $metric('x') AS score").collect()
+      }
     }
   }
 }

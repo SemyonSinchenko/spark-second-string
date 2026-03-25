@@ -5,6 +5,7 @@ import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
 import io.github.semyonsinchenko.sparkss.expressions.matrix.JaroWinkler
 import io.github.semyonsinchenko.sparkss.expressions.matrix.NeedlemanWunsch
+import io.github.semyonsinchenko.sparkss.expressions.matrix.SmithWaterman
 import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
@@ -29,6 +30,7 @@ object StringSimilaritySparkSessionExtensions {
       registerJaro(spark)
       registerJaroWinkler(spark)
       registerNeedlemanWunsch(spark)
+      registerSmithWaterman(spark)
     }
   }
 
@@ -197,6 +199,23 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("needleman_wunsch"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerSmithWaterman(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[SmithWaterman].getName, "smith_waterman")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => SmithWaterman(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function smith_waterman expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("smith_waterman"),
       expressionInfo,
       builder
     )

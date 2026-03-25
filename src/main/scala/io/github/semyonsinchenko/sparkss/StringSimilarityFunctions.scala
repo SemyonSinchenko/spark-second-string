@@ -10,6 +10,7 @@ import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
 import io.github.semyonsinchenko.sparkss.expressions.matrix.JaroWinkler
 import io.github.semyonsinchenko.sparkss.expressions.matrix.NeedlemanWunsch
+import io.github.semyonsinchenko.sparkss.expressions.matrix.SmithWaterman
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.functions.col
@@ -124,6 +125,17 @@ object StringSimilarityFunctions {
 
   def needlemanWunsch(left: String, right: String): Column = {
     needlemanWunsch(col(left), col(right))
+  }
+
+  def smithWaterman(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(SmithWaterman(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def smithWaterman(left: String, right: String): Column = {
+    smithWaterman(col(left), col(right))
   }
 
   private def convertColumnNodeToExpression(node: AnyRef): Expression = {
