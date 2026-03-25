@@ -9,6 +9,7 @@ import io.github.semyonsinchenko.sparkss.expressions.matrix.SmithWaterman
 import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
+import io.github.semyonsinchenko.sparkss.expressions.token.MongeElkan
 import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
 import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
 import org.apache.spark.sql.SparkSession
@@ -25,6 +26,7 @@ object StringSimilaritySparkSessionExtensions {
       registerOverlapCoefficient(spark)
       registerCosine(spark)
       registerBraunBlanquet(spark)
+      registerMongeElkan(spark)
       registerLevenshtein(spark)
       registerLcsSimilarity(spark)
       registerJaro(spark)
@@ -114,6 +116,23 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("braun_blanquet"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerMongeElkan(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[MongeElkan].getName, "monge_elkan")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => MongeElkan(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function monge_elkan expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("monge_elkan"),
       expressionInfo,
       builder
     )

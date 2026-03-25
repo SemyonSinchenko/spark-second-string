@@ -27,4 +27,20 @@ class TokenMetricKernelHelperSuite extends AnyFunSuite {
     assert(TokenMetricKernelHelper.intersectionSize(leftTokens, rightTokens) === 2)
     assert(TokenMetricKernelHelper.intersectionSize(rightTokens, leftTokens) === 2)
   }
+
+  test("token sequence preserves order and duplicate tokens") {
+    val sequence = TokenMetricKernelHelper.tokenizeToSequence("alpha beta alpha gamma")
+
+    assert(sequence.size() === 4)
+    assert(sequence.get(0) === "alpha")
+    assert(sequence.get(1) === "beta")
+    assert(sequence.get(2) === "alpha")
+    assert(sequence.get(3) === "gamma")
+  }
+
+  test("whitespace-only input tokenizes to empty sequence") {
+    val sequence = TokenMetricKernelHelper.tokenizeToSequence(" \t\n ")
+
+    assert(sequence.isEmpty)
+  }
 }

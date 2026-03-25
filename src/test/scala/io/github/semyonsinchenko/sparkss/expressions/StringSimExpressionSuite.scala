@@ -448,6 +448,27 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(rows(3).get(1) == null)
   }
 
+  test("monge elkan expression propagates null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("alpha beta"), Some("alpha gamma")),
+      (None, Some("alpha")),
+      (Some("alpha"), None)
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.monge_elkan(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.get(0))
+
+    assert(scores(0).asInstanceOf[Double] > 0.0)
+    assert(scores(0).asInstanceOf[Double] < 1.0)
+    assert(scores(1) == null)
+    assert(scores(2) == null)
+  }
+
   test("cosine and levenshtein evaluate nested child expressions correctly") {
     val s = spark
     import s.implicits._
@@ -560,6 +581,24 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assert(row.getDouble(0) === 1.0)
     assert(row.getDouble(1) === 0.75)
+  }
+
+  test("monge elkan evaluates nested child expressions correctly") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("alpha", "alpha beta")).toDF("prefix", "target")
+
+    val score = frame
+      .select(
+        StringSimilarityFunctions
+          .monge_elkan(concat_ws(" ", col("prefix"), lit("beta")), trim(col("target")))
+          .as("score")
+      )
+      .head()
+      .getDouble(0)
+
+    assert(score === 1.0)
   }
 
   test("cosine and levenshtein interpreted and codegen execution return identical outputs") {
@@ -797,6 +836,85 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(generatedLcs == interpretedLcs)
   }
 
+  test("monge elkan interpreted and codegen execution return identical outputs") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("alpha beta", "alpha gamma"),
+      ("", ""),
+      ("  ", "\t"),
+      ("", "x"),
+      ("x x y", "x y"),
+      ("alpha,beta", "alpha beta"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.monge_elkan, enabled = true)
+    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.monge_elkan, enabled = false)
+
+    assert(generated == interpreted)
+  }
+
+  test("monge elkan interpreted and codegen parity holds for nested expressions") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("alpha", "alpha beta"),
+      ("beta", "alpha beta"),
+      ("", ""),
+      ("  padded", "padded  ")
+    ).toDF("left", "right")
+
+    val generated = {
+      spark.conf.set("spark.sql.codegen.wholeStage", "true")
+      frame
+        .select(
+          StringSimilarityFunctions
+            .monge_elkan(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .as("score")
+        )
+        .collect()
+        .map(_.getDouble(0))
+        .toSeq
+    }
+
+    val interpreted = {
+      spark.conf.set("spark.sql.codegen.wholeStage", "false")
+      frame
+        .select(
+          StringSimilarityFunctions
+            .monge_elkan(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .as("score")
+        )
+        .collect()
+        .map(_.getDouble(0))
+        .toSeq
+    }
+
+    assert(generated == interpreted)
+  }
+
+  test("monge elkan codegen execution path returns concrete scores") {
+    val s = spark
+    import s.implicits._
+
+    spark.conf.set("spark.sql.codegen.wholeStage", "true")
+
+    val rows = Seq(
+      ("alpha beta", "alpha beta"),
+      ("alpha", "omega")
+    ).toDF("left", "right")
+      .select(StringSimilarityFunctions.monge_elkan(col("left"), col("right")).as("score"))
+      .collect()
+
+    assertClose(rows(0).getDouble(0), 1.0)
+    assert(rows(1).getDouble(0) >= 0.0)
+    assert(rows(1).getDouble(0) <= 1.0)
+  }
+
   test("cosine and levenshtein dsl constructors and sql registration use the same expression") {
     val s = spark
     import s.implicits._
@@ -906,6 +1024,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "overlap_coefficient",
       "cosine",
       "braun_blanquet",
+      "monge_elkan",
       "levenshtein",
       "lcs_similarity",
       "jaro",
@@ -945,6 +1064,24 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(sqlLcs === dslLcs)
   }
 
+  test("monge elkan dsl constructors and sql registration use the same expression") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("alpha beta", "alpha gamma")).toDF("left", "right")
+
+    val dslScore = frame
+      .select(StringSimilarityFunctions.monge_elkan("left", "right").as("score"))
+      .head()
+      .getDouble(0)
+
+    spark.registerStringSimilarityFunctions()
+    frame.createOrReplaceTempView("pairs")
+    val sqlScore = spark.sql("SELECT monge_elkan(left, right) AS score FROM pairs").head().getDouble(0)
+
+    assert(sqlScore === dslScore)
+  }
+
   test("token and matrix metric families preserve interpreted and codegen parity") {
     val s = spark
     import s.implicits._
@@ -966,7 +1103,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
         StringSimilarityFunctions.overlapCoefficient(left, right)
       ),
       "cosine" -> ((left: Column, right: Column) => StringSimilarityFunctions.cosine(left, right)),
-      "braun_blanquet" -> ((left: Column, right: Column) => StringSimilarityFunctions.braunBlanquet(left, right))
+      "braun_blanquet" -> ((left: Column, right: Column) => StringSimilarityFunctions.braunBlanquet(left, right)),
+      "monge_elkan" -> ((left: Column, right: Column) => StringSimilarityFunctions.monge_elkan(left, right))
     )
     val matrixMetrics = Seq(
       "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right)),
@@ -993,6 +1131,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "overlap_coefficient",
       "cosine",
       "braun_blanquet",
+      "monge_elkan",
       "levenshtein",
       "lcs_similarity",
       "jaro",

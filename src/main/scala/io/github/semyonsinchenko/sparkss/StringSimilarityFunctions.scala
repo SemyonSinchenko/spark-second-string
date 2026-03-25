@@ -5,6 +5,7 @@ import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
 import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
+import io.github.semyonsinchenko.sparkss.expressions.token.MongeElkan
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
 import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
@@ -70,6 +71,17 @@ object StringSimilarityFunctions {
 
   def braunBlanquet(left: String, right: String): Column = {
     braunBlanquet(col(left), col(right))
+  }
+
+  def monge_elkan(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(MongeElkan(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def monge_elkan(left: String, right: String): Column = {
+    monge_elkan(col(left), col(right))
   }
 
   def levenshtein(left: Column, right: Column): Column = {
