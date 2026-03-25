@@ -1,6 +1,7 @@
 package io.github.semyonsinchenko.sparkss.benchmarks
 
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
+import io.github.semyonsinchenko.sparkss.expressions.matrix.JaroWinkler
 import org.apache.spark.unsafe.types.UTF8String
 import org.openjdk.jmh.annotations._
 
@@ -52,5 +53,13 @@ class JaroBenchmark {
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def jaro(): Double = {
     Jaro.similarity(left, right)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def jaroWinkler(): Double = {
+    JaroWinkler.similarity(left, right)
   }
 }

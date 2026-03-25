@@ -3,6 +3,7 @@ package io.github.semyonsinchenko.sparkss.sql
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
 import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
+import io.github.semyonsinchenko.sparkss.expressions.matrix.JaroWinkler
 import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
@@ -25,6 +26,7 @@ object StringSimilaritySparkSessionExtensions {
       registerLevenshtein(spark)
       registerLcsSimilarity(spark)
       registerJaro(spark)
+      registerJaroWinkler(spark)
     }
   }
 
@@ -159,6 +161,23 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("jaro"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerJaroWinkler(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[JaroWinkler].getName, "jaro_winkler")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => JaroWinkler(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function jaro_winkler expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("jaro_winkler"),
       expressionInfo,
       builder
     )
