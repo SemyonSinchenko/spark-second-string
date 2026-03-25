@@ -4,6 +4,7 @@ import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
 import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
 import io.github.semyonsinchenko.sparkss.expressions.matrix.JaroWinkler
+import io.github.semyonsinchenko.sparkss.expressions.matrix.NeedlemanWunsch
 import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
@@ -27,6 +28,7 @@ object StringSimilaritySparkSessionExtensions {
       registerLcsSimilarity(spark)
       registerJaro(spark)
       registerJaroWinkler(spark)
+      registerNeedlemanWunsch(spark)
     }
   }
 
@@ -178,6 +180,23 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("jaro_winkler"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerNeedlemanWunsch(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[NeedlemanWunsch].getName, "needleman_wunsch")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => NeedlemanWunsch(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function needleman_wunsch expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("needleman_wunsch"),
       expressionInfo,
       builder
     )

@@ -352,6 +352,26 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(scores(2) == null)
   }
 
+  test("needleman wunsch expression propagates null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("spark"), Some("spork")),
+      (None, Some("a")),
+      (Some("a"), None)
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.needlemanWunsch(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.get(0))
+
+    assert(scores(0) == 0.8)
+    assert(scores(1) == null)
+    assert(scores(2) == null)
+  }
+
   test("braun blanquet and lcs similarity expressions propagate null values") {
     val s = spark
     import s.implicits._
@@ -433,6 +453,24 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       .getDouble(0)
 
     assertClose(score, 0.9611111111111111)
+  }
+
+  test("needleman wunsch evaluates nested child expressions correctly") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq((" spark ", "spork ")).toDF("a", "b")
+
+    val score = frame
+      .select(
+        StringSimilarityFunctions
+          .needlemanWunsch(trim(col("a")), trim(col("b")))
+          .as("needleman_wunsch")
+      )
+      .head()
+      .getDouble(0)
+
+    assert(score === 0.8)
   }
 
   test("braun blanquet and lcs similarity evaluate nested child expressions correctly") {
@@ -519,6 +557,25 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(generated == interpreted)
   }
 
+  test("needleman wunsch interpreted and codegen execution return identical outputs") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("spark", "spork"),
+      ("", ""),
+      ("", "x"),
+      ("aaaa", "aaab"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.needlemanWunsch, enabled = true)
+    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.needlemanWunsch, enabled = false)
+
+    assert(generated == interpreted)
+  }
+
   test("jaro codegen execution path returns concrete scores") {
     val s = spark
     import s.implicits._
@@ -550,6 +607,23 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
 
     assertClose(rows(0).getDouble(0), 0.9611111111111111)
+    assert(rows(1).getDouble(0) === 0.0)
+  }
+
+  test("needleman wunsch codegen execution path returns concrete scores") {
+    val s = spark
+    import s.implicits._
+
+    spark.conf.set("spark.sql.codegen.wholeStage", "true")
+
+    val rows = Seq(
+      ("spark", "spork"),
+      ("abc", "xyz")
+    ).toDF("left", "right")
+      .select(StringSimilarityFunctions.needlemanWunsch(col("left"), col("right")).as("score"))
+      .collect()
+
+    assert(rows(0).getDouble(0) === 0.8)
     assert(rows(1).getDouble(0) === 0.0)
   }
 
@@ -638,6 +712,48 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(sqlScore === dslScore)
   }
 
+  test("needleman wunsch dsl constructors and sql registration use the same expression") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("spark", "spork")).toDF("left", "right")
+
+    val dslScore = frame
+      .select(StringSimilarityFunctions.needlemanWunsch("left", "right").as("score"))
+      .head()
+      .getDouble(0)
+
+    spark.registerStringSimilarityFunctions()
+    frame.createOrReplaceTempView("pairs")
+    val sqlScore = spark.sql("SELECT needleman_wunsch(left, right) AS score FROM pairs").head().getDouble(0)
+
+    assert(dslScore === 0.8)
+    assert(sqlScore === dslScore)
+  }
+
+  test("registered sql metrics enforce two-argument arity") {
+    spark.registerStringSimilarityFunctions()
+
+    val metricNames = Seq(
+      "jaccard",
+      "sorensen_dice",
+      "overlap_coefficient",
+      "cosine",
+      "braun_blanquet",
+      "levenshtein",
+      "lcs_similarity",
+      "jaro",
+      "jaro_winkler",
+      "needleman_wunsch"
+    )
+
+    metricNames.foreach { metric =>
+      intercept[IllegalArgumentException] {
+        spark.sql(s"SELECT $metric('x') AS score").collect()
+      }
+    }
+  }
+
   test("braun blanquet and lcs similarity dsl constructors and sql registration use the same expression") {
     val s = spark
     import s.implicits._
@@ -689,7 +805,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right)),
       "lcs_similarity" -> ((left: Column, right: Column) => StringSimilarityFunctions.lcsSimilarity(left, right)),
       "jaro" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaro(left, right)),
-      "jaro_winkler" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right))
+      "jaro_winkler" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right)),
+      "needleman_wunsch" -> ((left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right))
     )
 
     (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
