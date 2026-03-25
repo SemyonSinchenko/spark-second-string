@@ -5,25 +5,25 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class OverlapCoefficient(left: Expression, right: Expression) extends TokenMetricExpression {
+case class BraunBlanquet(left: Expression, right: Expression) extends TokenMetricExpression {
 
-  private final val OverlapCoefficientModule =
-    "io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient$.MODULE$"
+  private final val BraunBlanquetModule =
+    "io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet$.MODULE$"
 
   override def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
     copy(left = newLeft, right = newRight)
   }
 
   override protected def evalTokenMetric(left: UTF8String, right: UTF8String): Double = {
-    OverlapCoefficient.similarity(left, right)
+    BraunBlanquet.similarity(left, right)
   }
 
   override protected def genTokenMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
-    s"$OverlapCoefficientModule.similarity($leftValue, $rightValue)"
+    s"$BraunBlanquetModule.similarity($leftValue, $rightValue)"
   }
 }
 
-object OverlapCoefficient {
+object BraunBlanquet {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
     val leftString = left.toString
@@ -39,8 +39,8 @@ object OverlapCoefficient {
     val leftTokens = TokenMetricKernelHelper.tokenizeToSet(leftString)
     val rightTokens = TokenMetricKernelHelper.tokenizeToSet(rightString)
     val interSize = TokenMetricKernelHelper.intersectionSize(leftTokens, rightTokens)
-    val minSetSize = Math.min(leftTokens.size, rightTokens.size)
+    val maxSetSize = Math.max(leftTokens.size, rightTokens.size)
 
-    if (minSetSize == 0) 1.0 else interSize.toDouble / minSetSize.toDouble
+    if (maxSetSize == 0) 1.0 else interSize.toDouble / maxSetSize.toDouble
   }
 }

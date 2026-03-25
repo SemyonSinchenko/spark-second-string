@@ -1,6 +1,8 @@
 package io.github.semyonsinchenko.sparkss.sql
 
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
+import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
+import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
 import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
@@ -18,7 +20,9 @@ object StringSimilaritySparkSessionExtensions {
       registerSorensenDice(spark)
       registerOverlapCoefficient(spark)
       registerCosine(spark)
+      registerBraunBlanquet(spark)
       registerLevenshtein(spark)
+      registerLcsSimilarity(spark)
     }
   }
 
@@ -90,6 +94,23 @@ object StringSimilaritySparkSessionExtensions {
     )
   }
 
+  private def registerBraunBlanquet(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[BraunBlanquet].getName, "braun_blanquet")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => BraunBlanquet(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function braun_blanquet expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("braun_blanquet"),
+      expressionInfo,
+      builder
+    )
+  }
+
   private def registerLevenshtein(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[Levenshtein].getName, "levenshtein")
     val builder: Seq[Expression] => Expression = {
@@ -102,6 +123,23 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("levenshtein"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerLcsSimilarity(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[LcsSimilarity].getName, "lcs_similarity")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => LcsSimilarity(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function lcs_similarity expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("lcs_similarity"),
       expressionInfo,
       builder
     )

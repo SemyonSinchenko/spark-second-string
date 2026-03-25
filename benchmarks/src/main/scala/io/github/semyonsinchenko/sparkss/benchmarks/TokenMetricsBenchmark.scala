@@ -1,6 +1,6 @@
 package io.github.semyonsinchenko.sparkss.benchmarks
 
-import io.github.semyonsinchenko.sparkss.expressions.token.{Cosine, Jaccard, OverlapCoefficient, SorensenDice}
+import io.github.semyonsinchenko.sparkss.expressions.token.{BraunBlanquet, Cosine, Jaccard, OverlapCoefficient, SorensenDice}
 import org.apache.spark.unsafe.types.UTF8String
 import org.openjdk.jmh.annotations._
 
@@ -73,5 +73,13 @@ class TokenMetricsBenchmark {
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def cosine(): Double = {
     Cosine.similarity(left, right)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def braunBlanquet(): Double = {
+    BraunBlanquet.similarity(left, right)
   }
 }

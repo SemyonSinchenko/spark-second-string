@@ -4,7 +4,9 @@ import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
 import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
 import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
+import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
+import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.functions.col
@@ -55,6 +57,17 @@ object StringSimilarityFunctions {
     cosine(col(left), col(right))
   }
 
+  def braunBlanquet(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(BraunBlanquet(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def braunBlanquet(left: String, right: String): Column = {
+    braunBlanquet(col(left), col(right))
+  }
+
   def levenshtein(left: Column, right: Column): Column = {
     val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
     val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
@@ -64,6 +77,17 @@ object StringSimilarityFunctions {
 
   def levenshtein(left: String, right: String): Column = {
     levenshtein(col(left), col(right))
+  }
+
+  def lcsSimilarity(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(LcsSimilarity(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def lcsSimilarity(left: String, right: String): Column = {
+    lcsSimilarity(col(left), col(right))
   }
 
   private def convertColumnNodeToExpression(node: AnyRef): Expression = {

@@ -308,6 +308,32 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(scores(2) == null)
   }
 
+  test("braun blanquet and lcs similarity expressions propagate null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("a b"), Some("a")),
+      (Some("spark"), Some("spork")),
+      (None, Some("a")),
+      (Some("a"), None)
+    ).toDF("left", "right")
+
+    val rows = frame
+      .select(
+        StringSimilarityFunctions.braunBlanquet(col("left"), col("right")).as("braun"),
+        StringSimilarityFunctions.lcsSimilarity(col("left"), col("right")).as("lcs")
+      )
+      .collect()
+
+    assert(rows(0).getDouble(0) == 0.5)
+    assert(rows(1).getDouble(1) == 0.8)
+    assert(rows(2).get(0) == null)
+    assert(rows(2).get(1) == null)
+    assert(rows(3).get(0) == null)
+    assert(rows(3).get(1) == null)
+  }
+
   test("cosine and levenshtein evaluate nested child expressions correctly") {
     val s = spark
     import s.implicits._
@@ -327,6 +353,27 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assert(row.getDouble(0) === 1.0)
     assert(row.getDouble(1) === 0.8)
+  }
+
+  test("braun blanquet and lcs similarity evaluate nested child expressions correctly") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("hello", "hello world", "abcd", "acbd")).toDF("prefix", "target", "a", "b")
+
+    val row = frame
+      .select(
+        StringSimilarityFunctions
+          .braunBlanquet(concat_ws(" ", col("prefix"), lit("world")), trim(col("target")))
+          .as("braun"),
+        StringSimilarityFunctions
+          .lcsSimilarity(trim(col("a")), trim(col("b")))
+          .as("lcs")
+      )
+      .head()
+
+    assert(row.getDouble(0) === 1.0)
+    assert(row.getDouble(1) === 0.75)
   }
 
   test("cosine and levenshtein interpreted and codegen execution return identical outputs") {
@@ -350,6 +397,29 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assert(generatedCosine == interpretedCosine)
     assert(generatedLevenshtein == interpretedLevenshtein)
+  }
+
+  test("braun blanquet and lcs similarity interpreted and codegen execution return identical outputs") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("a b c", "a b d"),
+      ("", ""),
+      ("", "x"),
+      ("x x y", "x y"),
+      ("spark", "spork"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val generatedBraun = evaluateWithCodegen(frame, StringSimilarityFunctions.braunBlanquet, enabled = true)
+    val interpretedBraun = evaluateWithCodegen(frame, StringSimilarityFunctions.braunBlanquet, enabled = false)
+    val generatedLcs = evaluateWithCodegen(frame, StringSimilarityFunctions.lcsSimilarity, enabled = true)
+    val interpretedLcs = evaluateWithCodegen(frame, StringSimilarityFunctions.lcsSimilarity, enabled = false)
+
+    assert(generatedBraun == interpretedBraun)
+    assert(generatedLcs == interpretedLcs)
   }
 
   test("cosine and levenshtein dsl constructors and sql registration use the same expression") {
@@ -376,6 +446,30 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(sqlLevenshtein === dslLevenshtein)
   }
 
+  test("braun blanquet and lcs similarity dsl constructors and sql registration use the same expression") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("a b", "a c"), ("spark", "spork")).toDF("left", "right")
+
+    val dslBraun = frame
+      .select(StringSimilarityFunctions.braunBlanquet("left", "right").as("score"))
+      .head()
+      .getDouble(0)
+    val dslLcs = frame
+      .select(StringSimilarityFunctions.lcsSimilarity("left", "right").as("score"))
+      .collect()(1)
+      .getDouble(0)
+
+    spark.registerStringSimilarityFunctions()
+    frame.createOrReplaceTempView("pairs")
+    val sqlBraun = spark.sql("SELECT braun_blanquet(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlLcs = spark.sql("SELECT lcs_similarity(left, right) AS score FROM pairs").collect()(1).getDouble(0)
+
+    assert(sqlBraun === dslBraun)
+    assert(sqlLcs === dslLcs)
+  }
+
   test("token and matrix metric families preserve interpreted and codegen parity") {
     val s = spark
     import s.implicits._
@@ -396,10 +490,12 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "overlap_coefficient" -> ((left: Column, right: Column) =>
         StringSimilarityFunctions.overlapCoefficient(left, right)
       ),
-      "cosine" -> ((left: Column, right: Column) => StringSimilarityFunctions.cosine(left, right))
+      "cosine" -> ((left: Column, right: Column) => StringSimilarityFunctions.cosine(left, right)),
+      "braun_blanquet" -> ((left: Column, right: Column) => StringSimilarityFunctions.braunBlanquet(left, right))
     )
     val matrixMetrics = Seq(
-      "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right))
+      "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right)),
+      "lcs_similarity" -> ((left: Column, right: Column) => StringSimilarityFunctions.lcsSimilarity(left, right))
     )
 
     (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
