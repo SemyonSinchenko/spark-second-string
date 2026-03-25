@@ -1,10 +1,4 @@
-# String Similarity Expression
-
-## Purpose
-
-Define a stable Catalyst expression contract for binary string similarity metrics that supports both token-based and matrix-based metric families.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Unified binary expression contract
 The system SHALL provide a unified binary expression contract for string similarity metrics with output type Double.
@@ -52,15 +46,3 @@ String similarity expressions SHALL provide consistent behavior between interpre
 #### Scenario: Per-metric parity enforcement
 - **WHEN** token and matrix metrics are expanded
 - **THEN** parity validation SHALL include `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, `braun_blanquet`, `levenshtein`, `lcs_similarity`, and `jaro`
-
-### Requirement: DSL-first API direction
-The system SHALL prioritize Scala/Java DSL usage for string similarity expressions.
-
-#### Scenario: Primary usage mode
-- **WHEN** developers consume string similarity expressions
-- **THEN** DSL usage SHALL be the primary and first-class integration path
-
-#### Scenario: Optional SQL exposure
-- **WHEN** SQL function exposure is needed
-- **THEN** registration SHALL be available through a thin SparkSession extension
-- **THEN** SQL ergonomics SHALL remain secondary to DSL ergonomics in this phase

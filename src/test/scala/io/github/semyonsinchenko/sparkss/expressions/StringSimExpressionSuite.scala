@@ -40,6 +40,10 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       .toSeq
   }
 
+  private def assertClose(actual: Double, expected: Double): Unit = {
+    assert(Math.abs(actual - expected) <= 1e-12)
+  }
+
   test("expression propagates null values") {
     val s = spark
     import s.implicits._
@@ -308,6 +312,26 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(scores(2) == null)
   }
 
+  test("jaro expression propagates null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("martha"), Some("marhta")),
+      (None, Some("a")),
+      (Some("a"), None)
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.jaro(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.get(0))
+
+    assertClose(scores(0).asInstanceOf[Double], 17.0 / 18.0)
+    assert(scores(1) == null)
+    assert(scores(2) == null)
+  }
+
   test("braun blanquet and lcs similarity expressions propagate null values") {
     val s = spark
     import s.implicits._
@@ -355,6 +379,24 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(row.getDouble(1) === 0.8)
   }
 
+  test("jaro evaluates nested child expressions correctly") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq((" martha ", "marhta ")).toDF("a", "b")
+
+    val score = frame
+      .select(
+        StringSimilarityFunctions
+          .jaro(trim(col("a")), trim(col("b")))
+          .as("jaro")
+      )
+      .head()
+      .getDouble(0)
+
+    assertClose(score, 17.0 / 18.0)
+  }
+
   test("braun blanquet and lcs similarity evaluate nested child expressions correctly") {
     val s = spark
     import s.implicits._
@@ -397,6 +439,43 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assert(generatedCosine == interpretedCosine)
     assert(generatedLevenshtein == interpretedLevenshtein)
+  }
+
+  test("jaro interpreted and codegen execution return identical outputs") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("martha", "marhta"),
+      ("dwayne", "duane"),
+      ("", ""),
+      ("", "x"),
+      ("aaaa", "aaab"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.jaro, enabled = true)
+    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.jaro, enabled = false)
+
+    assert(generated == interpreted)
+  }
+
+  test("jaro codegen execution path returns concrete scores") {
+    val s = spark
+    import s.implicits._
+
+    spark.conf.set("spark.sql.codegen.wholeStage", "true")
+
+    val rows = Seq(
+      ("martha", "marhta"),
+      ("abc", "xyz")
+    ).toDF("left", "right")
+      .select(StringSimilarityFunctions.jaro(col("left"), col("right")).as("score"))
+      .collect()
+
+    assertClose(rows(0).getDouble(0), 17.0 / 18.0)
+    assert(rows(1).getDouble(0) === 0.0)
   }
 
   test("braun blanquet and lcs similarity interpreted and codegen execution return identical outputs") {
@@ -444,6 +523,25 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assert(sqlCosine === dslCosine)
     assert(sqlLevenshtein === dslLevenshtein)
+  }
+
+  test("jaro dsl constructors and sql registration use the same expression") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("martha", "marhta")).toDF("left", "right")
+
+    val dslScore = frame
+      .select(StringSimilarityFunctions.jaro("left", "right").as("score"))
+      .head()
+      .getDouble(0)
+
+    spark.registerStringSimilarityFunctions()
+    frame.createOrReplaceTempView("pairs")
+    val sqlScore = spark.sql("SELECT jaro(left, right) AS score FROM pairs").head().getDouble(0)
+
+    assertClose(dslScore, 17.0 / 18.0)
+    assert(sqlScore === dslScore)
   }
 
   test("braun blanquet and lcs similarity dsl constructors and sql registration use the same expression") {
@@ -495,7 +593,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     )
     val matrixMetrics = Seq(
       "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right)),
-      "lcs_similarity" -> ((left: Column, right: Column) => StringSimilarityFunctions.lcsSimilarity(left, right))
+      "lcs_similarity" -> ((left: Column, right: Column) => StringSimilarityFunctions.lcsSimilarity(left, right)),
+      "jaro" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaro(left, right))
     )
 
     (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>

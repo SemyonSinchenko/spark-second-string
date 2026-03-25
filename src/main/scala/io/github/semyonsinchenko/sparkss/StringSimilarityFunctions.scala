@@ -7,6 +7,7 @@ import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein
 import io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity
+import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.functions.col
@@ -88,6 +89,17 @@ object StringSimilarityFunctions {
 
   def lcsSimilarity(left: String, right: String): Column = {
     lcsSimilarity(col(left), col(right))
+  }
+
+  def jaro(left: Column, right: Column): Column = {
+    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
+    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
+    val expressionNode = convertExpressionToColumnNode(Jaro(leftExpr, rightExpr))
+    convertColumnNodeToColumn(expressionNode)
+  }
+
+  def jaro(left: String, right: String): Column = {
+    jaro(col(left), col(right))
   }
 
   private def convertColumnNodeToExpression(node: AnyRef): Expression = {
