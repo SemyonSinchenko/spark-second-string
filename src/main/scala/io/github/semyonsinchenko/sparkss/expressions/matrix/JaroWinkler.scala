@@ -29,24 +29,23 @@ object JaroWinkler {
   private final val PrefixCap = 4
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
-    val leftString = left.toString
-    val rightString = right.toString
-    val leftLength = leftString.length
-    val rightLength = rightString.length
+    val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
+    val leftLength = resolved.leftLength
+    val rightLength = resolved.rightLength
 
     val boundary = MatrixMetricKernelHelper.boundarySimilarity(leftLength, rightLength)
     if (MatrixMetricKernelHelper.hasBoundaryResult(boundary)) {
       return boundary
     }
 
-    val jaro = Jaro.similarity(left, right)
+    val jaro = Jaro.computeFromResolved(resolved, leftLength, rightLength)
     if (jaro <= 0.0) {
       return 0.0
     }
 
     val maxPrefix = Math.min(Math.min(leftLength, rightLength), PrefixCap)
     var prefixLength = 0
-    while (prefixLength < maxPrefix && leftString.charAt(prefixLength) == rightString.charAt(prefixLength)) {
+    while (prefixLength < maxPrefix && resolved.leftCharAt(prefixLength) == resolved.rightCharAt(prefixLength)) {
       prefixLength += 1
     }
 

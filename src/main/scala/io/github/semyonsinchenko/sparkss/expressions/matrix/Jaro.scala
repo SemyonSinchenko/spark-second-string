@@ -24,20 +24,43 @@ case class Jaro(left: Expression, right: Expression) extends MatrixMetricExpress
 
 object Jaro {
 
+  private val workspace = new ThreadLocal[Array[Array[Boolean]]]
+
+  private def getWorkspace(leftSize: Int, rightSize: Int): Array[Array[Boolean]] = {
+    val minSize = Math.max(leftSize, rightSize)
+    val ws = workspace.get()
+    if (ws != null && ws(0).length >= minSize) ws
+    else {
+      val newWs = Array(new Array[Boolean](minSize), new Array[Boolean](minSize))
+      workspace.set(newWs)
+      newWs
+    }
+  }
+
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
-    val leftString = left.toString
-    val rightString = right.toString
-    val leftLength = leftString.length
-    val rightLength = rightString.length
+    val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
+    val leftLength = resolved.leftLength
+    val rightLength = resolved.rightLength
 
     val boundary = MatrixMetricKernelHelper.boundarySimilarity(leftLength, rightLength)
     if (MatrixMetricKernelHelper.hasBoundaryResult(boundary)) {
       return boundary
     }
 
+    computeFromResolved(resolved, leftLength, rightLength)
+  }
+
+  private[matrix] def computeFromResolved(
+      resolved: MatrixMetricKernelHelper.ResolvedStrings,
+      leftLength: Int,
+      rightLength: Int
+  ): Double = {
     val matchDistance = Math.max(0, (Math.max(leftLength, rightLength) / 2) - 1)
-    val leftMatches = new Array[Boolean](leftLength)
-    val rightMatches = new Array[Boolean](rightLength)
+    val rows = getWorkspace(leftLength, rightLength)
+    val leftMatches = rows(0)
+    val rightMatches = rows(1)
+    java.util.Arrays.fill(leftMatches, 0, leftLength, false)
+    java.util.Arrays.fill(rightMatches, 0, rightLength, false)
 
     var matches = 0
     var leftIndex = 0
@@ -48,7 +71,7 @@ object Jaro {
       var rightIndex = windowStart
       var found = false
       while (rightIndex < windowEnd && !found) {
-        if (!rightMatches(rightIndex) && leftString.charAt(leftIndex) == rightString.charAt(rightIndex)) {
+        if (!rightMatches(rightIndex) && resolved.leftCharAt(leftIndex) == resolved.rightCharAt(rightIndex)) {
           leftMatches(leftIndex) = true
           rightMatches(rightIndex) = true
           matches += 1
@@ -71,7 +94,7 @@ object Jaro {
         while (!rightMatches(rightCursor)) {
           rightCursor += 1
         }
-        if (leftString.charAt(leftIndex) != rightString.charAt(rightCursor)) {
+        if (resolved.leftCharAt(leftIndex) != resolved.rightCharAt(rightCursor)) {
           transpositions += 1
         }
         rightCursor += 1

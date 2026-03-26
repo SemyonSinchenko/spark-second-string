@@ -49,3 +49,42 @@ Regression bound policy for `monge_elkan` benchmark comparisons:
 - Compare `mongeElkan` throughput against `jaccardBaseline`, `sorensenDiceBaseline`, `cosineBaseline`, `braunBlanquetBaseline`, `jaroBaseline`, and `levenshteinBaseline` for each short/medium/long and low/medium/high overlap cohort.
 - Flag follow-up work if `mongeElkan` is slower than all token baselines by more than 50% in any single cohort.
 - Keep benchmark inputs and scoring semantics fixed for release review; do not add weighted or affine variants to this benchmark in this phase.
+
+## Benchmark suite
+
+`./dev/benchmarks_suite.sh` requires a mode.
+
+Run native direct/in-process benchmarks only:
+
+```bash
+./dev/benchmarks_suite.sh --mode native-only
+```
+
+Artifacts:
+
+- `benchmarks/target/reports/suite/native-jmh.json`
+
+Run Spark-vs-Spark comparison flow only (native Spark SQL -> legacy UDF -> compare):
+
+```bash
+./dev/benchmarks_suite.sh --mode compare-only
+```
+
+Artifacts:
+
+- `benchmarks/target/reports/suite/native-spark-jmh.json`
+- `benchmarks/target/reports/suite/legacy-udf-jmh.json`
+- `benchmarks/target/reports/suite/compare-table.txt`
+
+`compare-table.txt` is the fair Spark-vs-Spark view (`native-spark-jmh.json` vs `legacy-udf-jmh.json`).
+
+Optional flags:
+
+- `-v, --verbose` enables extra JMH logging
+- `-o, --output-dir <path>` writes artifacts to a custom directory with deterministic file names
+
+Troubleshooting:
+
+- If legacy benchmark setup fails with a missing class under `com.wcohen.secondstring`, add the legacy Java SecondString jar/repository dependency to the benchmark runtime classpath.
+- If comparison fails with runtime-setting mismatch, rerun both native and legacy phases through the suite script so warmup/measurement/fork/mode are aligned.
+- Unsupported legacy mappings are listed in compare output and are intentionally excluded from paired rows.

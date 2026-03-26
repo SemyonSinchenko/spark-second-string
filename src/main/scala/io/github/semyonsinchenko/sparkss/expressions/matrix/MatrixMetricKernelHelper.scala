@@ -1,8 +1,35 @@
 package io.github.semyonsinchenko.sparkss.expressions.matrix
 
+import org.apache.spark.unsafe.types.UTF8String
+
 object MatrixMetricKernelHelper {
 
   private final val NoBoundaryResult = Double.NaN
+
+  /** Resolved string representation for matrix metrics. When both inputs are ASCII-only, stores raw byte arrays to
+    * avoid String allocation. Otherwise falls back to Java Strings via UTF8String.toString.
+    */
+  private[matrix] final class ResolvedStrings(left: UTF8String, right: UTF8String) {
+    private val leftBytes = left.getBytes
+    private val rightBytes = right.getBytes
+    private val isAscii = isAllAscii(leftBytes) && isAllAscii(rightBytes)
+    private val leftString = if (isAscii) null else left.toString
+    private val rightString = if (isAscii) null else right.toString
+
+    def leftLength: Int = if (isAscii) leftBytes.length else leftString.length
+    def rightLength: Int = if (isAscii) rightBytes.length else rightString.length
+    def leftCharAt(i: Int): Int = if (isAscii) leftBytes(i) & 0xff else leftString.charAt(i).toInt
+    def rightCharAt(i: Int): Int = if (isAscii) rightBytes(i) & 0xff else rightString.charAt(i).toInt
+  }
+
+  private def isAllAscii(bytes: Array[Byte]): Boolean = {
+    var i = 0
+    while (i < bytes.length) {
+      if (bytes(i) < 0) return false
+      i += 1
+    }
+    true
+  }
 
   private[sparkss] def boundarySimilarity(leftLength: Int, rightLength: Int): Double = {
     if (leftLength == 0 && rightLength == 0) {

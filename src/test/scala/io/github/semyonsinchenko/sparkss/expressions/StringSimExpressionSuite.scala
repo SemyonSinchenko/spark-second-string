@@ -14,7 +14,13 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    spark = SparkSession.builder().master("local[1]").appName("StringSimExpressionSuite").getOrCreate()
+    spark = SparkSession
+      .builder()
+      .master("local[1]")
+      .appName("StringSimExpressionSuite")
+      .config("spark.ui.showConsoleProgress", "false")
+      .getOrCreate()
+    spark.sparkContext.setLogLevel("ERROR")
   }
 
   override protected def afterAll(): Unit = {

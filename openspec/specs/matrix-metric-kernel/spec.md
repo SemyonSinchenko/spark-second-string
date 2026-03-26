@@ -36,3 +36,11 @@ The system SHALL provide test coverage for matrix helper behavior used by matrix
 - **THEN** tests SHALL verify deterministic normalized scores bounded to `[0.0, 1.0]`
 - **THEN** tests SHALL verify affine-gap boundary outcomes for both-empty (`1.0`) and one-empty (`0.0`) inputs
 - **THEN** tests SHALL verify no boundary or normalization regressions in existing matrix metrics
+
+### Requirement: Matrix benchmark dual-flow comparability obligations
+The matrix metric kernel capability SHALL define benchmark obligations that enable direct comparability between Spark-native Catalyst/codegen execution and legacy-UDF baseline execution.
+
+#### Scenario: Comparable matrix benchmark settings are enforced
+- **WHEN** matrix metric benchmark suites are executed for native and legacy flows
+- **THEN** both flows MUST use identical JMH warmup, measurement, and fork settings
+- **THEN** benchmark scenarios MUST use aligned algorithm and scenario identifiers so result rows can be matched without heuristics

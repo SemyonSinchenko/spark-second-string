@@ -82,8 +82,21 @@ lazy val benchmarks = (project in file("benchmarks"))
   .settings(
     name := "spark-second-string-benchmarks",
     publish / skip := true,
+    resolvers += "Cogcomp" at "https://cogcomp.seas.upenn.edu/m2repo/",
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value
+      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value,
+      "com.wcohen" % "SecondString" % "1.0" % Runtime
     )
   )
   .dependsOn(root)
+
+lazy val benchmarkTools = (project in file("benchmark-tools"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "spark-second-string-benchmark-tools",
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "ujson" % "3.3.1"
+    )
+  )
+  .dependsOn(benchmarks)

@@ -29,19 +29,31 @@ object NeedlemanWunsch {
   private final val MismatchPenalty = -1
   private final val GapPenalty = -1
 
+  private val workspace = new ThreadLocal[Array[Array[Int]]]
+
+  private def getWorkspace(minSize: Int): Array[Array[Int]] = {
+    val ws = workspace.get()
+    if (ws != null && ws(0).length >= minSize) ws
+    else {
+      val newWs = Array(new Array[Int](minSize), new Array[Int](minSize))
+      workspace.set(newWs)
+      newWs
+    }
+  }
+
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
-    val leftString = left.toString
-    val rightString = right.toString
-    val leftLength = leftString.length
-    val rightLength = rightString.length
+    val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
+    val leftLength = resolved.leftLength
+    val rightLength = resolved.rightLength
 
     val boundary = MatrixMetricKernelHelper.boundarySimilarity(leftLength, rightLength)
     if (MatrixMetricKernelHelper.hasBoundaryResult(boundary)) {
       return boundary
     }
 
-    var previousRow = MatrixMetricKernelHelper.createWorkspaceRow(rightLength + 1)
-    var currentRow = MatrixMetricKernelHelper.createWorkspaceRow(rightLength + 1)
+    val rows = getWorkspace(rightLength + 1)
+    var previousRow = rows(0)
+    var currentRow = rows(1)
 
     var j = 0
     while (j <= rightLength) {
@@ -52,11 +64,11 @@ object NeedlemanWunsch {
     var i = 1
     while (i <= leftLength) {
       currentRow(0) = i * GapPenalty
-      val leftChar = leftString.charAt(i - 1)
+      val leftChar = resolved.leftCharAt(i - 1)
 
       j = 1
       while (j <= rightLength) {
-        val rightChar = rightString.charAt(j - 1)
+        val rightChar = resolved.rightCharAt(j - 1)
         val substitutionScore = if (leftChar == rightChar) MatchScore else MismatchPenalty
         val diagonal = previousRow(j - 1) + substitutionScore
         val up = previousRow(j) + GapPenalty

@@ -29,23 +29,42 @@ object AffineGap {
   private final val GapExtendPenalty = 1
   private final val Infinity = Int.MaxValue / 4
 
+  private val workspace = new ThreadLocal[Array[Array[Int]]]
+
+  private def getWorkspace(minSize: Int): Array[Array[Int]] = {
+    val ws = workspace.get()
+    if (ws != null && ws(0).length >= minSize) ws
+    else {
+      val newWs = Array.fill(6)(new Array[Int](minSize))
+      workspace.set(newWs)
+      newWs
+    }
+  }
+
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
-    val leftString = left.toString
-    val rightString = right.toString
-    val leftLength = leftString.length
-    val rightLength = rightString.length
+    val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
+    val leftLength = resolved.leftLength
+    val rightLength = resolved.rightLength
 
     val boundary = MatrixMetricKernelHelper.boundarySimilarity(leftLength, rightLength)
     if (MatrixMetricKernelHelper.hasBoundaryResult(boundary)) {
       return boundary
     }
 
-    var previousMatch = fillInfinity(rightLength + 1)
-    var currentMatch = fillInfinity(rightLength + 1)
-    var previousGapInLeft = fillInfinity(rightLength + 1)
-    var currentGapInLeft = fillInfinity(rightLength + 1)
-    var previousGapInRight = fillInfinity(rightLength + 1)
-    var currentGapInRight = fillInfinity(rightLength + 1)
+    val rows = getWorkspace(rightLength + 1)
+    var previousMatch = rows(0)
+    var currentMatch = rows(1)
+    var previousGapInLeft = rows(2)
+    var currentGapInLeft = rows(3)
+    var previousGapInRight = rows(4)
+    var currentGapInRight = rows(5)
+
+    java.util.Arrays.fill(previousMatch, 0, rightLength + 1, Infinity)
+    java.util.Arrays.fill(currentMatch, 0, rightLength + 1, Infinity)
+    java.util.Arrays.fill(previousGapInLeft, 0, rightLength + 1, Infinity)
+    java.util.Arrays.fill(currentGapInLeft, 0, rightLength + 1, Infinity)
+    java.util.Arrays.fill(previousGapInRight, 0, rightLength + 1, Infinity)
+    java.util.Arrays.fill(currentGapInRight, 0, rightLength + 1, Infinity)
 
     previousMatch(0) = 0
 
@@ -61,11 +80,11 @@ object AffineGap {
       currentGapInLeft(0) = Infinity
       currentGapInRight(0) = gapCost(i)
 
-      val leftChar = leftString.charAt(i - 1)
+      val leftChar = resolved.leftCharAt(i - 1)
 
       j = 1
       while (j <= rightLength) {
-        val substitution = if (leftChar == rightString.charAt(j - 1)) 0 else MismatchPenalty
+        val substitution = if (leftChar == resolved.rightCharAt(j - 1)) 0 else MismatchPenalty
 
         currentMatch(j) = safePlus(
           min3(previousMatch(j - 1), previousGapInLeft(j - 1), previousGapInRight(j - 1)),
@@ -108,12 +127,6 @@ object AffineGap {
       previousGapInRight(rightLength)
     )
     MatrixMetricKernelHelper.normalizeDistance(distance, leftLength, rightLength)
-  }
-
-  private def fillInfinity(size: Int): Array[Int] = {
-    val row = MatrixMetricKernelHelper.createWorkspaceRow(size)
-    java.util.Arrays.fill(row, Infinity)
-    row
   }
 
   private def safePlus(value: Int, increment: Int): Int = {
