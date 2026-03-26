@@ -20,6 +20,24 @@ Regression bound policy for `smith_waterman` benchmark comparisons:
 - Flag follow-up work if `smithWaterman` is slower than `needlemanWunschBaseline` by more than 30% in more than two scenarios.
 - Flag follow-up work if `smithWaterman` is slower than all matrix baselines by more than 50% in any single scenario.
 
+Use this command to run only the Affine-Gap benchmark with matrix-metric baselines:
+
+```bash
+sbt "benchmarks/jmh:run -rf json -rff target/reports/affine-gap.json AffineGapBenchmark"
+```
+
+Fixed affine-gap scoring profile in this phase:
+
+- mismatch penalty: `1`
+- gap open penalty: `2`
+- gap extend penalty: `1`
+
+Regression bound policy for `affine_gap` benchmark comparisons:
+
+- Compare `affineGap` throughput against `needlemanWunschBaseline`, `smithWatermanBaseline`, `levenshteinBaseline`, `lcsSimilarityBaseline`, and `jaroBaseline` for each short/medium/long and low/medium/high overlap cohort.
+- Capture per-cohort baseline deltas from the JSON report in change-review notes before merge.
+- Flag follow-up work if `affineGap` is slower than both `needlemanWunschBaseline` and `smithWatermanBaseline` by more than 35% in more than two cohorts.
+
 Use this command to run only the Monge-Elkan benchmark with token and matrix baselines:
 
 ```bash

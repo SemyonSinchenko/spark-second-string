@@ -6,6 +6,7 @@ import io.github.semyonsinchenko.sparkss.expressions.matrix.Jaro
 import io.github.semyonsinchenko.sparkss.expressions.matrix.JaroWinkler
 import io.github.semyonsinchenko.sparkss.expressions.matrix.NeedlemanWunsch
 import io.github.semyonsinchenko.sparkss.expressions.matrix.SmithWaterman
+import io.github.semyonsinchenko.sparkss.expressions.matrix.AffineGap
 import io.github.semyonsinchenko.sparkss.expressions.token.BraunBlanquet
 import io.github.semyonsinchenko.sparkss.expressions.token.Cosine
 import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
@@ -33,6 +34,7 @@ object StringSimilaritySparkSessionExtensions {
       registerJaroWinkler(spark)
       registerNeedlemanWunsch(spark)
       registerSmithWaterman(spark)
+      registerAffineGap(spark)
     }
   }
 
@@ -235,6 +237,23 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("smith_waterman"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerAffineGap(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[AffineGap].getName, "affine_gap")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(left, right) => AffineGap(left, right)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function affine_gap expects 2 arguments, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("affine_gap"),
       expressionInfo,
       builder
     )

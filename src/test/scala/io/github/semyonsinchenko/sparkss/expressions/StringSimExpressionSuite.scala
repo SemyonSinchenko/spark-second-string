@@ -392,6 +392,27 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(scores(2) == null)
   }
 
+  test("affine gap expression propagates null values") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("spark"), Some("spork")),
+      (None, Some("a")),
+      (Some("a"), None)
+    ).toDF("left", "right")
+
+    val scores = frame
+      .select(StringSimilarityFunctions.affine_gap(col("left"), col("right")).as("score"))
+      .collect()
+      .map(_.get(0))
+
+    assert(scores(0).asInstanceOf[Double] >= 0.0)
+    assert(scores(0).asInstanceOf[Double] <= 1.0)
+    assert(scores(1) == null)
+    assert(scores(2) == null)
+  }
+
   test("smith waterman covers required edge-case corpus") {
     val s = spark
     import s.implicits._
@@ -562,6 +583,25 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assertClose(score, 0.7)
   }
 
+  test("affine gap evaluates nested child expressions correctly") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq((" spark ", "spork ")).toDF("a", "b")
+
+    val score = frame
+      .select(
+        StringSimilarityFunctions
+          .affine_gap(trim(col("a")), trim(col("b")))
+          .as("affine_gap")
+      )
+      .head()
+      .getDouble(0)
+
+    assert(score >= 0.0)
+    assert(score <= 1.0)
+  }
+
   test("braun blanquet and lcs similarity evaluate nested child expressions correctly") {
     val s = spark
     import s.implicits._
@@ -705,6 +745,28 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(generated == interpreted)
   }
 
+  test("affine gap interpreted and codegen execution return identical outputs") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("spark", "spork"),
+      ("", ""),
+      ("", "x"),
+      ("aaaa", "aaab"),
+      ("abcdef", "cde"),
+      ("   ", "  "),
+      ("!@#", "!@!"),
+      (null.asInstanceOf[String], "x"),
+      ("x", null.asInstanceOf[String])
+    ).toDF("left", "right")
+
+    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.affine_gap, enabled = true)
+    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.affine_gap, enabled = false)
+
+    assert(generated == interpreted)
+  }
+
   test("smith waterman interpreted and codegen parity holds for nested expressions") {
     val s = spark
     import s.implicits._
@@ -735,6 +797,46 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
         .select(
           StringSimilarityFunctions
             .smithWaterman(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .as("score")
+        )
+        .collect()
+        .map(_.getDouble(0))
+        .toSeq
+    }
+
+    assert(generated == interpreted)
+  }
+
+  test("affine gap interpreted and codegen parity holds for nested expressions") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("spark", "spork"),
+      ("alpha", "alphx"),
+      ("", ""),
+      ("  padded", "padded  ")
+    ).toDF("left", "right")
+
+    val generated = {
+      spark.conf.set("spark.sql.codegen.wholeStage", "true")
+      frame
+        .select(
+          StringSimilarityFunctions
+            .affine_gap(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .as("score")
+        )
+        .collect()
+        .map(_.getDouble(0))
+        .toSeq
+    }
+
+    val interpreted = {
+      spark.conf.set("spark.sql.codegen.wholeStage", "false")
+      frame
+        .select(
+          StringSimilarityFunctions
+            .affine_gap(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
             .as("score")
         )
         .collect()
@@ -810,6 +912,24 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
 
     assertClose(rows(0).getDouble(0), 0.7)
+    assert(rows(1).getDouble(0) === 0.0)
+  }
+
+  test("affine gap codegen execution path returns concrete scores") {
+    val s = spark
+    import s.implicits._
+
+    spark.conf.set("spark.sql.codegen.wholeStage", "true")
+
+    val rows = Seq(
+      ("spark", "spork"),
+      ("", "x")
+    ).toDF("left", "right")
+      .select(StringSimilarityFunctions.affine_gap(col("left"), col("right")).as("score"))
+      .collect()
+
+    assert(rows(0).getDouble(0) >= 0.0)
+    assert(rows(0).getDouble(0) <= 1.0)
     assert(rows(1).getDouble(0) === 0.0)
   }
 
@@ -1015,6 +1135,24 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(sqlScore === dslScore)
   }
 
+  test("affine gap dsl constructors and sql registration use the same expression") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(("spark", "spork")).toDF("left", "right")
+
+    val dslScore = frame
+      .select(StringSimilarityFunctions.affine_gap("left", "right").as("score"))
+      .head()
+      .getDouble(0)
+
+    spark.registerStringSimilarityFunctions()
+    frame.createOrReplaceTempView("pairs")
+    val sqlScore = spark.sql("SELECT affine_gap(left, right) AS score FROM pairs").head().getDouble(0)
+
+    assert(sqlScore === dslScore)
+  }
+
   test("registered sql metrics enforce two-argument arity") {
     spark.registerStringSimilarityFunctions()
 
@@ -1030,7 +1168,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "jaro",
       "jaro_winkler",
       "needleman_wunsch",
-      "smith_waterman"
+      "smith_waterman",
+      "affine_gap"
     )
 
     metricNames.foreach { metric =>
@@ -1112,7 +1251,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "jaro" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaro(left, right)),
       "jaro_winkler" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right)),
       "needleman_wunsch" -> ((left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right)),
-      "smith_waterman" -> ((left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right))
+      "smith_waterman" -> ((left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right)),
+      "affine_gap" -> ((left: Column, right: Column) => StringSimilarityFunctions.affine_gap(left, right))
     )
 
     (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
@@ -1137,7 +1277,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "jaro",
       "jaro_winkler",
       "needleman_wunsch",
-      "smith_waterman"
+      "smith_waterman",
+      "affine_gap"
     )
 
     dslMetrics.foreach { metric =>
@@ -1147,6 +1288,43 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       intercept[IllegalArgumentException] {
         spark.sql(s"SELECT $metric('x') AS score").collect()
       }
+    }
+  }
+
+  test("matrix metric family keeps boundary and normalization contracts") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("", ""),
+      ("", "spark"),
+      ("spark", "spark"),
+      ("aaaa", "aaab"),
+      ("a,b.c!", "a b c?"),
+      ("   ", "  "),
+      ("abcdef", "abc")
+    ).toDF("left", "right")
+
+    val matrixMetrics = Seq(
+      (left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right),
+      (left: Column, right: Column) => StringSimilarityFunctions.lcsSimilarity(left, right),
+      (left: Column, right: Column) => StringSimilarityFunctions.jaro(left, right),
+      (left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right),
+      (left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right),
+      (left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right),
+      (left: Column, right: Column) => StringSimilarityFunctions.affine_gap(left, right)
+    )
+
+    matrixMetrics.foreach { metric =>
+      val scores = frame
+        .select(metric(col("left"), col("right")).as("score"))
+        .collect()
+        .map(_.getDouble(0))
+
+      assertClose(scores(0), 1.0)
+      assertClose(scores(1), 0.0)
+      assertClose(scores(2), 1.0)
+      assert(scores.forall(value => value >= 0.0 && value <= 1.0))
     }
   }
 }
