@@ -20,7 +20,7 @@ The system SHALL provide a standalone fuzz-testing CLI entry point in the dedica
 - **THEN** the CLI rejects invocation with argument validation failure
 
 ### Requirement: Reproducible synthetic dataset generation
-The system SHALL generate seeded random string pairs deterministically so that runs with identical `(seed, rows)` produce identical generated datasets and report values.
+The system SHALL generate seeded deterministic string pairs using a case-driven randomized construction model so that runs with identical `(seed, rows)` produce identical generated datasets and report values, while avoiding globally forced shared-prefix structure.
 
 #### Scenario: Repeated run yields identical output
 - **WHEN** the CLI is executed twice with the same `--seed` and `--rows`
@@ -29,6 +29,10 @@ The system SHALL generate seeded random string pairs deterministically so that r
 #### Scenario: Seed change alters generated data
 - **WHEN** the CLI is executed with different `--seed` values and the same `--rows`
 - **THEN** the generated string pairs differ between runs
+
+#### Scenario: Generation uses diverse case cohorts without universal prefixing
+- **WHEN** synthetic pairs are generated for parity testing
+- **THEN** pair relationships are produced by deterministic case builders for required cohorts and no fixed shared-prefix rule is applied to every pair
 
 ### Requirement: DataFrame-only evaluation pipeline
 The system SHALL evaluate native metrics and legacy baseline metrics exclusively through Spark DataFrame transformations.
@@ -42,28 +46,28 @@ The system SHALL evaluate native metrics and legacy baseline metrics exclusively
 - **THEN** each baseline score is produced through Spark UDF wrappers over DataFrame columns
 
 ### Requirement: Correlation reporting for parity analysis
-The system SHALL compute and report both Pearson and Spearman correlations between native and baseline metric outputs using Spark ML correlation APIs.
+The system SHALL compute and report both Pearson and Spearman correlations between native metric outputs and scaled legacy baseline outputs using Spark ML correlation APIs.
 
 #### Scenario: Correlation table includes both methods
 - **WHEN** a fuzz-testing report is generated
-- **THEN** the markdown output includes Pearson and Spearman correlation values for each evaluated metric pair
+- **THEN** the markdown output includes Pearson and Spearman correlation values for each evaluated metric pair computed from native and scaled legacy baseline values
 
 ### Requirement: Delta band distribution reporting
-The system SHALL compute absolute relative-delta band distributions and report row counts and percentages for `+-5%`, `+-10%`, `+-30%`, and overflow `>30%` buckets.
+The system SHALL compute absolute relative-delta band distributions from native-vs-scaled-legacy comparisons and report row counts and percentages for `+-5%`, `+-10%`, `+-30%`, and overflow `>30%` buckets.
 
 #### Scenario: Delta band table includes required bands
 - **WHEN** a fuzz-testing report is generated
 - **THEN** the markdown output includes count and percentage columns for `+-5%`, `+-10%`, `+-30%`, and overflow `>30%` buckets
 
-#### Scenario: Delta percentages are normalized to row count
+#### Scenario: Delta percentages are normalized to compared row count
 - **WHEN** delta band statistics are computed for a run
-- **THEN** each reported percentage is derived from the run's total row count
+- **THEN** each reported percentage is derived from the run's total number of rows included in native-vs-scaled-baseline comparison
 
 ### Requirement: Relative delta computation policy
-The system SHALL compute relative delta using the symmetric denominator formula `abs(native-baseline)/max((abs(native)+abs(baseline))/2, 1e-9)`.
+The system SHALL compute relative delta using the symmetric denominator formula `abs(native-scaled_baseline)/max((abs(native)+abs(scaled_baseline))/2, 1e-9)`.
 
 #### Scenario: Near-zero denominator handling is stable
-- **WHEN** native and baseline scores are both near zero
+- **WHEN** native and scaled baseline scores are both near zero
 - **THEN** denominator flooring at `1e-9` prevents undefined or unstable relative-delta results
 
 ### Requirement: Report destination and top-level logs
@@ -78,22 +82,26 @@ The system SHALL write markdown report content to the `--out` file path and SHAL
 - **THEN** stdout contains top-level run/log messages rather than full markdown report content
 
 ### Requirement: Optional per-metric CSV output export
-The system SHALL support optional `--save-output <dir>` for exporting per-row comparison tables and SHALL keep this export disabled by default when the option is omitted.
+The system SHALL support optional `--save-output <dir>` for exporting per-row comparison tables, SHALL keep this export disabled by default when the option is omitted, and SHALL include explicitly named raw and scaled legacy baseline columns when exports are written.
 
 #### Scenario: Save-output omitted keeps csv export disabled
 - **WHEN** the fuzz-testing CLI is invoked without `--save-output`
 - **THEN** no per-metric CSV outputs are written and markdown output behavior remains unchanged
 
-#### Scenario: Save-output writes one csv output per metric
+#### Scenario: Save-output writes one csv output per metric with explicit baseline semantics
 - **WHEN** the fuzz-testing CLI is invoked with `--save-output <dir>`
-- **THEN** it writes one per-metric Spark CSV output (using `coalesce(1)`) under the target directory with columns `input_left`, `input_right`, `native`, `second_string`, and `relative_diff`
+- **THEN** it writes one per-metric Spark CSV output (using `coalesce(1)`) under the target directory with columns `input_left`, `input_right`, `native`, `second_string_raw`, `second_string_scaled`, and `relative_diff`
 
 ### Requirement: Aggregated summary table
-The system SHALL include both per-metric sections and one aggregated cross-metric summary table in the markdown report.
+The system SHALL include both per-metric sections and one aggregated cross-metric summary table in the markdown report, and SHALL report the count of rows excluded from parity analytics due to `NULL` scaled baselines.
 
 #### Scenario: Report contains per-metric and aggregate views
 - **WHEN** a report is generated
 - **THEN** the output includes detailed per-metric sections and a single cross-metric aggregate summary table
+
+#### Scenario: Null-excluded rows are reported
+- **WHEN** parity analytics exclude rows with `NULL` scaled baseline values
+- **THEN** the markdown report includes per-metric counts of excluded `NULL` rows
 
 ### Requirement: Unbounded row count input
 The system SHALL NOT impose a soft or hard guardrail on `--rows` and SHALL accept any provided row count value.
