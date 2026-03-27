@@ -15,3 +15,30 @@ sbt "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingC
 ```
 
 Automated baseline coverage is enforced in `FuzzyTestingSuite` with deterministic/cohort tests and fallback-mode tests.
+
+## Excluded metrics
+
+### AffineGap
+
+AffineGap is excluded from the fuzzy-testing parity comparison because SecondString's
+`com.wcohen.secondstring.AffineGap` implements a fundamentally different algorithm from the
+native affine-gap edit distance:
+
+| Aspect | Native | SecondString |
+|---|---|---|
+| Algorithm type | Global edit distance (minimize) | Semi-local alignment score (maximize) |
+| Score extraction | Bottom-right cell | Max over entire DP matrix |
+| Match scoring | Mismatch cost = 1 | Match = +2, mismatch = -1 (DIST_21) |
+| Gap scoring | Open = 2, extend = 1 (costs) | Open = +2, extend = +1 (additive rewards) |
+| Border conditions | Cumulative gap penalties | Zeros (free restarts, Smith-Waterman-style) |
+| Known bugs | None | `InsertTMatrix` always reads row 1 instead of row `i-1` |
+
+Consequences:
+- Completely disjoint strings score high in SecondString (semi-local alignment finds
+  positive-scoring sub-paths) but 0.0 in native (maximum edit distance).
+- Repeated characters inflate SecondString scores beyond `2 * maxLength` due to the row-1 bug.
+- No analytical scaler can map SecondString raw output to native normalized output because
+  the DP recurrences, boundary conditions, and score semantics are all different.
+
+The native AffineGap implementation is a correct affine-gap edit distance and remains
+available as a Spark SQL function. Only the fuzzy-testing parity comparison is excluded.

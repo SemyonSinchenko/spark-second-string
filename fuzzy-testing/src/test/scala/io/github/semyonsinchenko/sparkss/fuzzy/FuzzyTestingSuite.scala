@@ -139,7 +139,6 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     LegacySecondStringUdfs.registerAll(
       spark,
       Seq(
-        "legacy_affine_gap" -> "com.wcohen.secondstring.AffineGap",
         "legacy_needleman_wunsch" -> "com.wcohen.secondstring.NeedlemanWunsch",
         "legacy_smith_waterman" -> "com.wcohen.secondstring.SmithWaterman",
         "legacy_jaro_winkler" -> "com.wcohen.secondstring.JaroWinkler",
@@ -148,7 +147,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     )
 
     val input = FuzzyTestingPipeline.generateInputData(spark, seed = 5L, rows = 50L)
-    val scored = FuzzyTestingPipeline.scoredDataFrameForMetric(input, "affine_gap")
+    val scored = FuzzyTestingPipeline.scoredDataFrameForMetric(input, "smith_waterman")
 
     val columns = scored.columns.toSeq
     assert(columns.contains("input_left"))
@@ -166,11 +165,12 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     val sparkSession = spark
     import sparkSession.implicits._
 
+    // NW scaler: (raw + maxLen) / maxLen; for "abc"/"abc" maxLen=3
     val input = Seq(
       ("all-empty", "", "", 999.0: java.lang.Double),
-      ("clamped-high", "abc", "abc", -1.0: java.lang.Double),
+      ("clamped-high", "abc", "abc", 2.0: java.lang.Double),
       ("clamped-low", "abc", "abc", -5.0: java.lang.Double),
-      ("bounded", "abc", "abc", 500.0: java.lang.Double),
+      ("bounded", "abc", "abc", -1.0: java.lang.Double),
       ("nan", "abc", "ab", Double.NaN: java.lang.Double),
       ("pos-inf", "abc", "ab", Double.PositiveInfinity: java.lang.Double),
       ("neg-inf", "abc", "ab", Double.NegativeInfinity: java.lang.Double),
@@ -178,7 +178,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     ).toDF("case_id", "input_left", "input_right", "second_string_raw")
 
     val scaled = FuzzyTestingPipeline
-      .applyLegacyScalingForMetric(input, "affine_gap")
+      .applyLegacyScalingForMetric(input, "needleman_wunsch")
       .select("case_id", "second_string_scaled")
       .collect()
       .map(row => row.getString(0) -> (if (row.isNullAt(1)) None else Some(row.getDouble(1))))
@@ -207,7 +207,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
       .applyLegacyScalingForMetric(input.filter("second_string_raw = -2.0"), "needleman_wunsch")
       .head()
       .getAs[Double]("second_string_scaled")
-    val expectedNeedle = (-2.0 + 4.0) / (2.0 * 4.0)
+    val expectedNeedle = (-2.0 + 4.0) / 4.0
     assert(Math.abs(needleScaled - expectedNeedle) < 1e-12)
 
     val smithScaled = FuzzyTestingPipeline
@@ -225,7 +225,6 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     LegacySecondStringUdfs.registerAll(
       spark,
       Seq(
-        "legacy_affine_gap" -> "com.wcohen.secondstring.AffineGap",
         "legacy_needleman_wunsch" -> "com.wcohen.secondstring.NeedlemanWunsch",
         "legacy_smith_waterman" -> "com.wcohen.secondstring.SmithWaterman",
         "legacy_jaro_winkler" -> "com.wcohen.secondstring.JaroWinkler",
@@ -256,7 +255,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
       rows = 10L,
       metrics = Seq(
         MetricReport(
-          metric = "affine_gap",
+          metric = "smith_waterman",
           comparedRowCount = 10L,
           excludedNullScaledCount = 2L,
           pearson = 0.9,
@@ -272,7 +271,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(markdown.contains("excluded NULL scaled rows"))
     assert(markdown.contains("pearson | 0.900000"))
     assert(markdown.contains("spearman | 0.800000"))
-    assert(markdown.contains("## Metric: affine_gap"))
+    assert(markdown.contains("## Metric: smith_waterman"))
     assert(markdown.contains("Excluded NULL scaled rows: 2"))
     assert(markdown.contains("ALL | 10 | 2 | - | -"))
   }
@@ -282,7 +281,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     val second = FuzzyTestingPipeline.run(spark, seed = 42L, rows = 20L)
 
     val metricNames = first.metrics.map(_.metric).toSet
-    assert(metricNames == Set("affine_gap", "needleman_wunsch", "smith_waterman", "jaro_winkler", "monge_elkan"))
+    assert(metricNames == Set("needleman_wunsch", "smith_waterman", "jaro_winkler", "monge_elkan"))
     assert(first.seed == second.seed)
     assert(first.rows == second.rows)
     assert(first.metrics.size == second.metrics.size)
@@ -301,7 +300,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     try {
       FuzzyTestingPipeline.run(spark, seed = 42L, rows = 10L, saveOutputDir = Some(outputDir.toString))
 
-      val metrics = Seq("affine_gap", "needleman_wunsch", "smith_waterman", "jaro_winkler", "monge_elkan")
+      val metrics = Seq("needleman_wunsch", "smith_waterman", "jaro_winkler", "monge_elkan")
       metrics.foreach { metric =>
         val metricDir = outputDir.resolve(metric)
         assert(Files.isDirectory(metricDir), s"missing metric directory: $metricDir")

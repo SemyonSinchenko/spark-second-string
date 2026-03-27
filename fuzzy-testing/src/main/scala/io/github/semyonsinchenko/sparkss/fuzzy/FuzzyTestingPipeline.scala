@@ -112,14 +112,6 @@ private[fuzzy] object FuzzyTestingPipeline {
 
   private val MetricSpecs = Seq(
     MetricSpec(
-      metric = "affine_gap",
-      nativeFunction = "affine_gap",
-      legacyUdfName = "legacy_affine_gap",
-      legacyClassName = "com.wcohen.secondstring.AffineGap",
-      scaler = affineGapScaler,
-      emptyPairScaledValue = Some(1.0)
-    ),
-    MetricSpec(
       metric = "needleman_wunsch",
       nativeFunction = "needleman_wunsch",
       legacyUdfName = "legacy_needleman_wunsch",
@@ -522,13 +514,9 @@ private[fuzzy] object FuzzyTestingPipeline {
     least(length(inputLeft), length(inputRight)).cast("double")
   }
 
-  private def affineGapScaler(raw: Column, inputLeft: Column, inputRight: Column): Column = {
-    lit(1.0) / (lit(1.0) + (raw / maxLength(inputLeft, inputRight)))
-  }
-
   private def needlemanWunschScaler(raw: Column, inputLeft: Column, inputRight: Column): Column = {
     val maxLen = maxLength(inputLeft, inputRight)
-    (raw + maxLen) / (lit(2.0) * maxLen)
+    (raw + maxLen) / maxLen
   }
 
   private def smithWatermanScaler(raw: Column, inputLeft: Column, inputRight: Column): Column = {
