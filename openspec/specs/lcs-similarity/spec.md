@@ -11,7 +11,7 @@ The system SHALL provide an `LcsSimilarity` expression for normalized longest co
 
 #### Scenario: Class location and naming
 - **WHEN** the LcsSimilarity class is created
-- **THEN** it SHALL be located in package `sparkss.expressions.matrix`
+- **THEN** it SHALL be located in package `io.github.semyonsinchenko.sparkss.expressions.matrix`
 - **THEN** it SHALL be named `LcsSimilarity`
 
 #### Scenario: LCS similarity calculation

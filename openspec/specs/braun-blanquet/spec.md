@@ -11,7 +11,7 @@ The system SHALL provide a `BraunBlanquet` expression for token-set Braun-Blanqu
 
 #### Scenario: Class location and naming
 - **WHEN** the BraunBlanquet class is created
-- **THEN** it SHALL be located in package `sparkss.expressions.token`
+- **THEN** it SHALL be located in package `io.github.semyonsinchenko.sparkss.expressions.token`
 - **THEN** it SHALL be named `BraunBlanquet`
 
 #### Scenario: Braun-Blanquet similarity calculation

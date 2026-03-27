@@ -11,7 +11,7 @@ The system SHALL provide a `Jaccard` expression for token-set Jaccard similarity
 
 #### Scenario: Class location and naming
 - **WHEN** the Jaccard class is created
-- **THEN** it SHALL be located in package `sparkss.expressions.token`
+- **THEN** it SHALL be located in package `io.github.semyonsinchenko.sparkss.expressions.token`
 - **THEN** it SHALL be named `Jaccard`
 
 #### Scenario: Jaccard similarity calculation

@@ -11,7 +11,7 @@ The system SHALL provide an `OverlapCoefficient` expression for token-set Overla
 
 #### Scenario: Class location and naming
 - **WHEN** the Overlap Coefficient class is created
-- **THEN** it SHALL be located in package `sparkss.expressions.token`
+- **THEN** it SHALL be located in package `io.github.semyonsinchenko.sparkss.expressions.token`
 - **THEN** it SHALL be named `OverlapCoefficient`
 
 #### Scenario: Overlap Coefficient similarity calculation

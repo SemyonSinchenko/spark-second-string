@@ -11,7 +11,7 @@ The system SHALL provide a `Cosine` expression for token-set Cosine similarity b
 
 #### Scenario: Class location and naming
 - **WHEN** the Cosine class is created
-- **THEN** it SHALL be located in package `sparkss.expressions.token`
+- **THEN** it SHALL be located in package `io.github.semyonsinchenko.sparkss.expressions.token`
 - **THEN** it SHALL be named `Cosine`
 
 #### Scenario: Cosine similarity calculation

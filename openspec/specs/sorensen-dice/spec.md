@@ -11,7 +11,7 @@ The system SHALL provide a `SorensenDice` expression for token-set Sorensen-Dice
 
 #### Scenario: Class location and naming
 - **WHEN** the Sorensen-Dice class is created
-- **THEN** it SHALL be located in package `sparkss.expressions.token`
+- **THEN** it SHALL be located in package `io.github.semyonsinchenko.sparkss.expressions.token`
 - **THEN** it SHALL be named `SorensenDice`
 
 #### Scenario: Sorensen-Dice similarity calculation

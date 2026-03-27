@@ -7,13 +7,19 @@ Define requirements for deterministic orchestration of native benchmarking, lega
 ## Requirements
 
 ### Requirement: Deterministic benchmark suite orchestration
-The system SHALL provide `/dev/benchmarks_suite.sh` to orchestrate native, legacy-UDF, and compare-cli benchmark phases in a strict execution order.
+The system SHALL provide `/dev/benchmarks_suite.sh` with explicit execution modes for deterministic benchmark orchestration.
 
-#### Scenario: Suite executes phases in required sequence
-- **WHEN** `/dev/benchmarks_suite.sh` is executed
+#### Scenario: Compare-only mode executes phases in required sequence
+- **WHEN** `/dev/benchmarks_suite.sh --mode compare-only` is executed
 - **THEN** it MUST run the spark-native benchmark flow first
 - **THEN** it MUST run the legacy-UDF benchmark flow second
 - **THEN** it MUST invoke the comparison CLI after both benchmark flows complete
+
+#### Scenario: Native-only mode executes direct benchmarks only
+- **WHEN** `/dev/benchmarks_suite.sh --mode native-only` is executed
+- **THEN** it MUST run the native direct benchmark flow
+- **THEN** it MUST NOT invoke the legacy-UDF benchmark flow
+- **THEN** it MUST NOT invoke the comparison CLI
 
 ### Requirement: Configurable verbosity and stable outputs
 The orchestration flow SHALL support configurable verbosity and deterministic output file locations for all generated artifacts.

@@ -12,7 +12,7 @@ The system SHALL expose string similarity expressions as first-class Scala/Java 
 #### Scenario: Primary consumer mode
 - **WHEN** library and platform developers integrate metrics
 - **THEN** they SHALL be able to construct metrics directly from Scala/Java code without SQL registration
-- **THEN** the DSL SHALL expose constructors/helpers for `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, `braun_blanquet`, `monge_elkan`, `levenshtein`, `lcs_similarity`, `jaro`, `jaro_winkler`, `needleman_wunsch`, `smith_waterman`, and `affine_gap`
+- **THEN** the Scala/Java DSL SHALL expose constructors/helpers named `jaccard`, `sorensenDice`, `overlapCoefficient`, `cosine`, `braunBlanquet`, `monge_elkan`, `levenshtein`, `lcsSimilarity`, `jaro`, `jaroWinkler`, `needlemanWunsch`, `smithWaterman`, and `affine_gap`
 
 #### Scenario: Monge-elkan naming and arity parity
 - **WHEN** developers construct `monge_elkan` via the DSL

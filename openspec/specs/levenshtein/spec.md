@@ -11,7 +11,7 @@ The system SHALL provide a `Levenshtein` expression for normalized matrix-based 
 
 #### Scenario: Class location and naming
 - **WHEN** the Levenshtein class is created
-- **THEN** it SHALL be located in package `sparkss.expressions.matrix`
+- **THEN** it SHALL be located in package `io.github.semyonsinchenko.sparkss.expressions.matrix`
 - **THEN** it SHALL be named `Levenshtein`
 
 #### Scenario: Levenshtein similarity calculation
