@@ -100,3 +100,18 @@ lazy val benchmarkTools = (project in file("benchmark-tools"))
     )
   )
   .dependsOn(benchmarks)
+
+lazy val fuzzyTesting = Project("fuzzy-testing", file("fuzzy-testing"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "spark-second-string-fuzzy-testing",
+    publish / skip := true,
+    resolvers += "Cogcomp" at "https://cogcomp.seas.upenn.edu/m2repo/",
+    libraryDependencies ++= Seq(
+      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value,
+      "org.apache.spark" %% "spark-mllib" % (ThisBuild / sparkVersion).value,
+      "com.wcohen" % "SecondString" % "1.0" % Runtime,
+      "org.scalatest" %% "scalatest" % "3.2.19" % Test
+    )
+  )
+  .dependsOn(root)
