@@ -18,8 +18,8 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      JAVA_OPTS: -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC -Dfile.encoding=UTF-8
-      JVM_OPTS:  -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC -Dfile.encoding=UTF-8
+      JAVA_OPTS: -Xms2048M -Xmx2048M
+      JVM_OPTS:  -Xms2048M -Xmx2048M
     steps:
     - uses: actions/checkout@v6
     - uses: actions/setup-java@v5
