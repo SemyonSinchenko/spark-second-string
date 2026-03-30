@@ -1333,4 +1333,70 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       assert(scores.forall(value => value >= 0.0 && value <= 1.0))
     }
   }
+
+  test("phonetic DSL helpers propagate nulls and compose with similarity") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      (Some("Stephen Smith"), Some("Steven Schmidt")),
+      (None, Some("Steven Schmidt"))
+    ).toDF("left", "right")
+
+    val rows = frame
+      .select(
+        StringSimilarityFunctions.soundex(col("left")).as("left_sx"),
+        StringSimilarityFunctions.soundex(col("right")).as("right_sx"),
+        StringSimilarityFunctions
+          .jaccard(StringSimilarityFunctions.soundex(col("left")), StringSimilarityFunctions.soundex(col("right")))
+          .as("sx_jaccard")
+      )
+      .collect()
+
+    assert(rows(0).getString(0).nonEmpty)
+    assert(rows(0).getString(1).nonEmpty)
+    assert(rows(0).getDouble(2) >= 0.0)
+    assert(rows(0).getDouble(2) <= 1.0)
+    assert(rows(1).isNullAt(0))
+    assert(rows(1).isNullAt(2))
+  }
+
+  test("phonetic expressions keep interpreted and codegen parity") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq("Stephen", "Steven", "O'Brien", "123", null.asInstanceOf[String]).toDF("value")
+
+    def evalPhonetic(codegen: Boolean): Seq[(Any, Any, Any)] = {
+      spark.conf.set("spark.sql.codegen.wholeStage", codegen.toString)
+      frame
+        .select(
+          StringSimilarityFunctions.soundex(col("value")).as("sx"),
+          StringSimilarityFunctions.refinedSoundex(col("value")).as("rsx"),
+          StringSimilarityFunctions.doubleMetaphone(col("value")).as("dm")
+        )
+        .collect()
+        .map(row => (row.get(0), row.get(1), row.get(2)))
+        .toSeq
+    }
+
+    assert(evalPhonetic(codegen = true) === evalPhonetic(codegen = false))
+  }
+
+  test("namespaced SQL phonetic functions are registered and executable") {
+    val s = spark
+    import s.implicits._
+
+    spark.registerStringSimilarityFunctions()
+    val frame = Seq("Robert").toDF("name")
+    frame.createOrReplaceTempView("people")
+
+    val row = spark
+      .sql("SELECT ss_soundex(name), ss_refined_soundex(name), ss_double_metaphone(name) FROM people")
+      .head()
+
+    assert(row.getString(0) === "R163")
+    assert(row.getString(1).nonEmpty)
+    assert(row.getString(2).nonEmpty)
+  }
 }

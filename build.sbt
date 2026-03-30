@@ -1,6 +1,25 @@
+import laika.config.SyntaxHighlighting
+import laika.format.Markdown.GitHubFlavor
+
+import scala.sys.process.*
+
 // Spark version setting with default value
 val sparkVersion = settingKey[String]("Spark version to build against")
 ThisBuild / sparkVersion := sys.props.getOrElse("sparkVersion", "4.0.2")
+
+val baseVersion = settingKey[String]("Version truncated to major.minor.patch")
+
+ThisBuild / baseVersion := {
+  val raw = (ThisBuild / version).value
+  val SemVerCore = raw"""^(\d+)\.(\d+)\.(\d+).*$$""".r
+
+  raw match {
+    case SemVerCore(major, minor, patch) => s"$major.$minor.$patch"
+    case _ => raw // fallback if version doesn't start with x.y.z
+  }
+}
+
+val generateDocsVariables = taskKey[Unit]("Generate Laika variable files from benchmark and fuzzy reports")
 
 // Dynamic Scala version based on Spark version
 ThisBuild / scalaVersion := {
@@ -71,6 +90,7 @@ lazy val root = (project in file("."))
     name := "spark-second-string",
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value % Provided,
+      "commons-codec" % "commons-codec" % "1.17.1",
       "org.scalatest" %% "scalatest" % "3.2.19" % Test
     )
   )
@@ -115,3 +135,74 @@ lazy val fuzzyTesting = Project("fuzzy-testing", file("fuzzy-testing"))
     )
   )
   .dependsOn(root)
+
+lazy val docs = Project("docs", file("docs"))
+  .enablePlugins(LaikaPlugin)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "spark-second-string-docs",
+    publish / skip := true,
+    laikaTheme := LaikaConfig.getLaikaTheme((ThisBuild / baseVersion).value),
+    laikaExtensions := Seq(GitHubFlavor, SyntaxHighlighting),
+    generateDocsVariables := {
+      val repoRoot = baseDirectory.value.getParentFile
+      val benchmarkReport = repoRoot / "benchmarks" / "target" / "reports" / "suite" / "compare-table.txt"
+      val fuzzyReport = repoRoot / "fuzzy-testing" / "target" / "reports" / "fuzzy-report.md"
+      val benchmarkVars = baseDirectory.value / "variables" / "benchmarks.conf"
+      val fuzzyVars = baseDirectory.value / "variables" / "fuzzy-testing.conf"
+      val benchmarkParser = repoRoot / "dev" / "docs_benchmark_vars.py"
+      val fuzzyParser = repoRoot / "dev" / "docs_fuzzy_vars.py"
+      val directoryConf = baseDirectory.value / "src" / "directory.conf"
+
+      if (!benchmarkReport.exists()) {
+        sys.error(
+          s"Docs build precondition failed: benchmark report is missing at ${benchmarkReport.getAbsolutePath}. Run ./dev/benchmarks_suite.sh --mode compare-only first."
+        )
+      }
+
+      if (!fuzzyReport.exists()) {
+        sys.error(
+          s"Docs build precondition failed: fuzzy testing report is missing at ${fuzzyReport.getAbsolutePath}. Run the fuzzy-testing CLI to generate fuzzy-testing/target/reports/fuzzy-report.md first."
+        )
+      }
+
+      IO.createDirectory(benchmarkVars.getParentFile)
+
+      val benchmarkExit = Process(
+        Seq("python3", benchmarkParser.getAbsolutePath, "--input", benchmarkReport.getAbsolutePath, "--output", benchmarkVars.getAbsolutePath),
+        repoRoot
+      ).!
+      if (benchmarkExit != 0) {
+        sys.error("Docs build precondition failed: benchmark variable generation failed.")
+      }
+
+      val fuzzyExit = Process(
+        Seq("python3", fuzzyParser.getAbsolutePath, "--input", fuzzyReport.getAbsolutePath, "--output", fuzzyVars.getAbsolutePath),
+        repoRoot
+      ).!
+      if (fuzzyExit != 0) {
+        sys.error("Docs build precondition failed: fuzzy-testing variable generation failed.")
+      }
+      val benchmarkTopLevel = IO.read(benchmarkVars)
+      val fuzzyTopLevel = IO.read(fuzzyVars)
+      val merged =
+        s"""|laika.title = "Documentation"
+            |
+            |laika.navigationOrder = [
+            |  overview.md
+            |  quick-start.md
+            |  existing-metrics.md
+            |  fuzzy-testing.md
+            |  benchmarks.md
+            |]
+            |
+            |$benchmarkTopLevel
+            |
+            |$fuzzyTopLevel
+            |""".stripMargin
+      IO.write(directoryConf, merged)
+    },
+    laikaSite := (laikaSite dependsOn generateDocsVariables).value,
+    laikaHTML := (laikaHTML dependsOn generateDocsVariables).value,
+    Laika / sourceDirectories := Seq((ThisBuild / baseDirectory).value / "docs" / "src")
+  )

@@ -10,6 +10,7 @@ object BenchmarkIdentifiers {
   val JaroWinkler: String = "jaro_winkler"
   val TokenMetrics: String = "token_metrics"
   val MongeElkan: String = "monge_elkan"
+  val Phonetic: String = "phonetic"
 
   val MatrixScenarios: Seq[String] = Seq(
     "short-low-overlap",
@@ -52,7 +53,8 @@ object BenchmarkIdentifiers {
     "LcsSimilarityBenchmark" -> LcsSimilarity,
     "JaroBenchmark" -> Jaro,
     "TokenMetricsBenchmark" -> TokenMetrics,
-    "MongeElkanBenchmark" -> MongeElkan
+    "MongeElkanBenchmark" -> MongeElkan,
+    "PhoneticBenchmark" -> Phonetic
   )
 }
 

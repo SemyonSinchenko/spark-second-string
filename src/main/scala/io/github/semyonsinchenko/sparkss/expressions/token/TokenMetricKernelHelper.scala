@@ -56,6 +56,27 @@ object TokenMetricKernelHelper {
     tokens
   }
 
+  private[sparkss] def tokenizeToCharNgramSet(value: String, n: Int): java.util.HashSet[String] = {
+    val tokens = new java.util.HashSet[String]()
+    val length = value.length
+
+    if (length == 0) {
+      return tokens
+    }
+
+    if (length < n) {
+      tokens.add(value)
+      return tokens
+    }
+
+    var i = 0
+    while (i <= length - n) {
+      tokens.add(value.substring(i, i + n))
+      i += 1
+    }
+    tokens
+  }
+
   private[sparkss] def intersectionSize(
       leftTokens: java.util.HashSet[String],
       rightTokens: java.util.HashSet[String]

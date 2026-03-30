@@ -78,6 +78,22 @@ class MongeElkanBenchmark {
   @Fork(1)
   @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def mongeElkanJaroInnerMetric(): Double = {
+    MongeElkan.similarity(left, right, "jaro", 0)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def mongeElkanBigrams(): Double = {
+    MongeElkan.similarity(left, right, "jaro_winkler", 2)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def jaccardBaseline(): Double = {
     Jaccard.similarity(left, right)
   }

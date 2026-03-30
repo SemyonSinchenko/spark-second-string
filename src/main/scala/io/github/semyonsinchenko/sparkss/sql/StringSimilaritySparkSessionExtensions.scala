@@ -13,6 +13,7 @@ import io.github.semyonsinchenko.sparkss.expressions.token.Jaccard
 import io.github.semyonsinchenko.sparkss.expressions.token.MongeElkan
 import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
 import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
+import io.github.semyonsinchenko.sparkss.expressions.phonetic.{DoubleMetaphone, RefinedSoundex, Soundex}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
@@ -35,6 +36,9 @@ object StringSimilaritySparkSessionExtensions {
       registerNeedlemanWunsch(spark)
       registerSmithWaterman(spark)
       registerAffineGap(spark)
+      registerSoundex(spark)
+      registerRefinedSoundex(spark)
+      registerDoubleMetaphone(spark)
     }
   }
 
@@ -254,6 +258,57 @@ object StringSimilaritySparkSessionExtensions {
 
     spark.sessionState.functionRegistry.registerFunction(
       FunctionIdentifier("affine_gap"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerSoundex(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[Soundex].getName, "ss_soundex")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(input) => Soundex(input)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function ss_soundex expects 1 argument, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("ss_soundex"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerRefinedSoundex(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[RefinedSoundex].getName, "ss_refined_soundex")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(input) => RefinedSoundex(input)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function ss_refined_soundex expects 1 argument, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("ss_refined_soundex"),
+      expressionInfo,
+      builder
+    )
+  }
+
+  private def registerDoubleMetaphone(spark: SparkSession): Unit = {
+    val expressionInfo = new ExpressionInfo(classOf[DoubleMetaphone].getName, "ss_double_metaphone")
+    val builder: Seq[Expression] => Expression = {
+      case Seq(input) => DoubleMetaphone(input)
+      case args =>
+        throw new IllegalArgumentException(
+          s"Function ss_double_metaphone expects 1 argument, found ${args.size}"
+        )
+    }
+
+    spark.sessionState.functionRegistry.registerFunction(
+      FunctionIdentifier("ss_double_metaphone"),
       expressionInfo,
       builder
     )

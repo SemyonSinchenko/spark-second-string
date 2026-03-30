@@ -1,11 +1,19 @@
 package io.github.semyonsinchenko.sparkss.expressions.matrix
 
 import io.github.semyonsinchenko.sparkss.expressions.MatrixMetricExpression
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure, TypeCheckSuccess}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class NeedlemanWunsch(left: Expression, right: Expression) extends MatrixMetricExpression {
+case class NeedlemanWunsch(
+    left: Expression,
+    right: Expression,
+    matchScore: Int = NeedlemanWunsch.DefaultMatchScore,
+    mismatchPenalty: Int = NeedlemanWunsch.DefaultMismatchPenalty,
+    gapPenalty: Int = NeedlemanWunsch.DefaultGapPenalty
+) extends MatrixMetricExpression {
 
   private final val NeedlemanWunschModule =
     "io.github.semyonsinchenko.sparkss.expressions.matrix.NeedlemanWunsch$.MODULE$"
@@ -15,19 +23,35 @@ case class NeedlemanWunsch(left: Expression, right: Expression) extends MatrixMe
   }
 
   override protected def evalMatrixMetric(left: UTF8String, right: UTF8String): Double = {
-    NeedlemanWunsch.similarity(left, right)
+    NeedlemanWunsch.similarity(left, right, matchScore, mismatchPenalty, gapPenalty)
   }
 
   override protected def genMatrixMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
-    s"$NeedlemanWunschModule.similarity($leftValue, $rightValue)"
+    s"$NeedlemanWunschModule.similarity($leftValue, $rightValue, $matchScore, $mismatchPenalty, $gapPenalty)"
+  }
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    super.checkInputDataTypes() match {
+      case TypeCheckSuccess =>
+        if (matchScore <= 0) {
+          TypeCheckFailure(s"matchScore must be > 0, but got $matchScore")
+        } else if (mismatchPenalty >= 0) {
+          TypeCheckFailure(s"mismatchPenalty must be < 0, but got $mismatchPenalty")
+        } else if (gapPenalty >= 0) {
+          TypeCheckFailure(s"gapPenalty must be < 0, but got $gapPenalty")
+        } else {
+          TypeCheckSuccess
+        }
+      case failure => failure
+    }
   }
 }
 
 object NeedlemanWunsch {
 
-  private final val MatchScore = 1
-  private final val MismatchPenalty = -1
-  private final val GapPenalty = -1
+  private[sparkss] final val DefaultMatchScore = 1
+  private[sparkss] final val DefaultMismatchPenalty = -1
+  private[sparkss] final val DefaultGapPenalty = -1
 
   private val workspace = new ThreadLocal[Array[Array[Int]]]
 
@@ -42,6 +66,16 @@ object NeedlemanWunsch {
   }
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
+    similarity(left, right, DefaultMatchScore, DefaultMismatchPenalty, DefaultGapPenalty)
+  }
+
+  private[sparkss] def similarity(
+      left: UTF8String,
+      right: UTF8String,
+      matchScore: Int,
+      mismatchPenalty: Int,
+      gapPenalty: Int
+  ): Double = {
     val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
     val leftLength = resolved.leftLength
     val rightLength = resolved.rightLength
@@ -57,22 +91,22 @@ object NeedlemanWunsch {
 
     var j = 0
     while (j <= rightLength) {
-      previousRow(j) = j * GapPenalty
+      previousRow(j) = j * gapPenalty
       j += 1
     }
 
     var i = 1
     while (i <= leftLength) {
-      currentRow(0) = i * GapPenalty
+      currentRow(0) = i * gapPenalty
       val leftChar = resolved.leftCharAt(i - 1)
 
       j = 1
       while (j <= rightLength) {
         val rightChar = resolved.rightCharAt(j - 1)
-        val substitutionScore = if (leftChar == rightChar) MatchScore else MismatchPenalty
+        val substitutionScore = if (leftChar == rightChar) matchScore else mismatchPenalty
         val diagonal = previousRow(j - 1) + substitutionScore
-        val up = previousRow(j) + GapPenalty
-        val leftCell = currentRow(j - 1) + GapPenalty
+        val up = previousRow(j) + gapPenalty
+        val leftCell = currentRow(j - 1) + gapPenalty
         currentRow(j) = Math.max(Math.max(diagonal, up), leftCell)
         j += 1
       }

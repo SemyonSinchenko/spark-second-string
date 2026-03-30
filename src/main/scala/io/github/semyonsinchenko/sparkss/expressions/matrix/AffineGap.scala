@@ -1,11 +1,19 @@
 package io.github.semyonsinchenko.sparkss.expressions.matrix
 
 import io.github.semyonsinchenko.sparkss.expressions.MatrixMetricExpression
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure, TypeCheckSuccess}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class AffineGap(left: Expression, right: Expression) extends MatrixMetricExpression {
+case class AffineGap(
+    left: Expression,
+    right: Expression,
+    mismatchPenalty: Int = AffineGap.DefaultMismatchPenalty,
+    gapOpenPenalty: Int = AffineGap.DefaultGapOpenPenalty,
+    gapExtendPenalty: Int = AffineGap.DefaultGapExtendPenalty
+) extends MatrixMetricExpression {
 
   private final val AffineGapModule = "io.github.semyonsinchenko.sparkss.expressions.matrix.AffineGap$.MODULE$"
 
@@ -14,19 +22,35 @@ case class AffineGap(left: Expression, right: Expression) extends MatrixMetricEx
   }
 
   override protected def evalMatrixMetric(left: UTF8String, right: UTF8String): Double = {
-    AffineGap.similarity(left, right)
+    AffineGap.similarity(left, right, mismatchPenalty, gapOpenPenalty, gapExtendPenalty)
   }
 
   override protected def genMatrixMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
-    s"$AffineGapModule.similarity($leftValue, $rightValue)"
+    s"$AffineGapModule.similarity($leftValue, $rightValue, $mismatchPenalty, $gapOpenPenalty, $gapExtendPenalty)"
+  }
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    super.checkInputDataTypes() match {
+      case TypeCheckSuccess =>
+        if (mismatchPenalty <= 0) {
+          TypeCheckFailure(s"mismatchPenalty must be > 0, but got $mismatchPenalty")
+        } else if (gapOpenPenalty <= 0) {
+          TypeCheckFailure(s"gapOpenPenalty must be > 0, but got $gapOpenPenalty")
+        } else if (gapExtendPenalty <= 0) {
+          TypeCheckFailure(s"gapExtendPenalty must be > 0, but got $gapExtendPenalty")
+        } else {
+          TypeCheckSuccess
+        }
+      case failure => failure
+    }
   }
 }
 
 object AffineGap {
 
-  private final val MismatchPenalty = 1
-  private final val GapOpenPenalty = 2
-  private final val GapExtendPenalty = 1
+  private[sparkss] final val DefaultMismatchPenalty = 1
+  private[sparkss] final val DefaultGapOpenPenalty = 2
+  private[sparkss] final val DefaultGapExtendPenalty = 1
   private final val Infinity = Int.MaxValue / 4
 
   private val workspace = new ThreadLocal[Array[Array[Int]]]
@@ -42,6 +66,16 @@ object AffineGap {
   }
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
+    similarity(left, right, DefaultMismatchPenalty, DefaultGapOpenPenalty, DefaultGapExtendPenalty)
+  }
+
+  private[sparkss] def similarity(
+      left: UTF8String,
+      right: UTF8String,
+      mismatchPenalty: Int,
+      gapOpenPenalty: Int,
+      gapExtendPenalty: Int
+  ): Double = {
     val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
     val leftLength = resolved.leftLength
     val rightLength = resolved.rightLength
@@ -70,7 +104,7 @@ object AffineGap {
 
     var j = 1
     while (j <= rightLength) {
-      previousGapInLeft(j) = gapCost(j)
+      previousGapInLeft(j) = gapCost(j, gapOpenPenalty, gapExtendPenalty)
       j += 1
     }
 
@@ -78,13 +112,13 @@ object AffineGap {
     while (i <= leftLength) {
       currentMatch(0) = Infinity
       currentGapInLeft(0) = Infinity
-      currentGapInRight(0) = gapCost(i)
+      currentGapInRight(0) = gapCost(i, gapOpenPenalty, gapExtendPenalty)
 
       val leftChar = resolved.leftCharAt(i - 1)
 
       j = 1
       while (j <= rightLength) {
-        val substitution = if (leftChar == resolved.rightCharAt(j - 1)) 0 else MismatchPenalty
+        val substitution = if (leftChar == resolved.rightCharAt(j - 1)) 0 else mismatchPenalty
 
         currentMatch(j) = safePlus(
           min3(previousMatch(j - 1), previousGapInLeft(j - 1), previousGapInRight(j - 1)),
@@ -92,15 +126,15 @@ object AffineGap {
         )
 
         currentGapInLeft(j) = min3(
-          safePlus(currentMatch(j - 1), GapOpenPenalty + GapExtendPenalty),
-          safePlus(currentGapInLeft(j - 1), GapExtendPenalty),
-          safePlus(currentGapInRight(j - 1), GapOpenPenalty + GapExtendPenalty)
+          safePlus(currentMatch(j - 1), gapOpenPenalty + gapExtendPenalty),
+          safePlus(currentGapInLeft(j - 1), gapExtendPenalty),
+          safePlus(currentGapInRight(j - 1), gapOpenPenalty + gapExtendPenalty)
         )
 
         currentGapInRight(j) = min3(
-          safePlus(previousMatch(j), GapOpenPenalty + GapExtendPenalty),
-          safePlus(previousGapInRight(j), GapExtendPenalty),
-          safePlus(previousGapInLeft(j), GapOpenPenalty + GapExtendPenalty)
+          safePlus(previousMatch(j), gapOpenPenalty + gapExtendPenalty),
+          safePlus(previousGapInRight(j), gapExtendPenalty),
+          safePlus(previousGapInLeft(j), gapOpenPenalty + gapExtendPenalty)
         )
 
         j += 1
@@ -141,7 +175,7 @@ object AffineGap {
     Math.min(first, Math.min(second, third))
   }
 
-  private def gapCost(length: Int): Int = {
-    GapOpenPenalty + (length * GapExtendPenalty)
+  private def gapCost(length: Int, gapOpenPenalty: Int, gapExtendPenalty: Int): Int = {
+    gapOpenPenalty + (length * gapExtendPenalty)
   }
 }

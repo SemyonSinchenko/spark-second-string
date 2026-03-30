@@ -1,11 +1,19 @@
 package io.github.semyonsinchenko.sparkss.expressions.matrix
 
 import io.github.semyonsinchenko.sparkss.expressions.MatrixMetricExpression
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure, TypeCheckSuccess}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class SmithWaterman(left: Expression, right: Expression) extends MatrixMetricExpression {
+case class SmithWaterman(
+    left: Expression,
+    right: Expression,
+    matchScore: Int = SmithWaterman.DefaultMatchScore,
+    mismatchPenalty: Int = SmithWaterman.DefaultMismatchPenalty,
+    gapPenalty: Int = SmithWaterman.DefaultGapPenalty
+) extends MatrixMetricExpression {
 
   private final val SmithWatermanModule =
     "io.github.semyonsinchenko.sparkss.expressions.matrix.SmithWaterman$.MODULE$"
@@ -15,19 +23,35 @@ case class SmithWaterman(left: Expression, right: Expression) extends MatrixMetr
   }
 
   override protected def evalMatrixMetric(left: UTF8String, right: UTF8String): Double = {
-    SmithWaterman.similarity(left, right)
+    SmithWaterman.similarity(left, right, matchScore, mismatchPenalty, gapPenalty)
   }
 
   override protected def genMatrixMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
-    s"$SmithWatermanModule.similarity($leftValue, $rightValue)"
+    s"$SmithWatermanModule.similarity($leftValue, $rightValue, $matchScore, $mismatchPenalty, $gapPenalty)"
+  }
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    super.checkInputDataTypes() match {
+      case TypeCheckSuccess =>
+        if (matchScore <= 0) {
+          TypeCheckFailure(s"matchScore must be > 0, but got $matchScore")
+        } else if (mismatchPenalty > 0) {
+          TypeCheckFailure(s"mismatchPenalty must be <= 0, but got $mismatchPenalty")
+        } else if (gapPenalty > 0) {
+          TypeCheckFailure(s"gapPenalty must be <= 0, but got $gapPenalty")
+        } else {
+          TypeCheckSuccess
+        }
+      case failure => failure
+    }
   }
 }
 
 object SmithWaterman {
 
-  private final val MatchScore = 2
-  private final val MismatchPenalty = -1
-  private final val GapPenalty = -1
+  private[sparkss] final val DefaultMatchScore = 2
+  private[sparkss] final val DefaultMismatchPenalty = -1
+  private[sparkss] final val DefaultGapPenalty = -1
 
   private val workspace = new ThreadLocal[Array[Array[Int]]]
 
@@ -42,6 +66,16 @@ object SmithWaterman {
   }
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
+    similarity(left, right, DefaultMatchScore, DefaultMismatchPenalty, DefaultGapPenalty)
+  }
+
+  private[sparkss] def similarity(
+      left: UTF8String,
+      right: UTF8String,
+      matchScore: Int,
+      mismatchPenalty: Int,
+      gapPenalty: Int
+  ): Double = {
     val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
     val leftLength = resolved.leftLength
     val rightLength = resolved.rightLength
@@ -64,10 +98,10 @@ object SmithWaterman {
 
       var j = 1
       while (j <= rightLength) {
-        val substitutionScore = if (leftChar == resolved.rightCharAt(j - 1)) MatchScore else MismatchPenalty
+        val substitutionScore = if (leftChar == resolved.rightCharAt(j - 1)) matchScore else mismatchPenalty
         val diagonal = previousRow(j - 1) + substitutionScore
-        val up = previousRow(j) + GapPenalty
-        val leftCell = currentRow(j - 1) + GapPenalty
+        val up = previousRow(j) + gapPenalty
+        val leftCell = currentRow(j - 1) + gapPenalty
         val cellScore = Math.max(0, Math.max(diagonal, Math.max(up, leftCell)))
         currentRow(j) = cellScore
 
@@ -84,11 +118,11 @@ object SmithWaterman {
       i += 1
     }
 
-    normalize(bestScore, leftLength, rightLength)
+    normalize(bestScore, leftLength, rightLength, matchScore)
   }
 
-  private def normalize(rawScore: Int, leftLength: Int, rightLength: Int): Double = {
-    val maxScore = MatchScore.toDouble * Math.min(leftLength, rightLength).toDouble
+  private def normalize(rawScore: Int, leftLength: Int, rightLength: Int, matchScore: Int): Double = {
+    val maxScore = matchScore.toDouble * Math.min(leftLength, rightLength).toDouble
     if (maxScore <= 0.0) {
       return 1.0
     }

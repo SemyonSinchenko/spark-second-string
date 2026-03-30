@@ -16,7 +16,7 @@ The system SHALL support building with different Spark versions, automatically d
 - **THEN** `scalaVersion` is automatically set to `2.12`
 
 ### Requirement: Multi-project structure
-The system SHALL define three sbt subprojects: root project (`.`), `benchmarks`, and `fuzzy-testing`.
+The system SHALL define four sbt subprojects: root project (`.`), `benchmarks`, `fuzzy-testing`, and `docs`.
 
 #### Scenario: Root project exists
 - **WHEN** user runs `sbt projects`
@@ -29,6 +29,10 @@ The system SHALL define three sbt subprojects: root project (`.`), `benchmarks`,
 #### Scenario: Fuzzy-testing subproject exists
 - **WHEN** user runs `sbt projects`
 - **THEN** the `fuzzy-testing` subproject is listed
+
+#### Scenario: Docs subproject exists
+- **WHEN** user runs `sbt projects`
+- **THEN** the `docs` subproject is listed
 
 ### Requirement: Apache Spark dependency configuration
 The system SHALL include Apache Spark as a dependency with appropriate scoping for each subproject, while preserving existing dependency scopes and runtime behavior for `.` and `benchmarks`.
@@ -136,3 +140,25 @@ The system SHALL include a minimal hello-world benchmark in the benchmarks subpr
 #### Scenario: Benchmark compiles
 - **WHEN** user runs `sbt benchmarks/compile`
 - **THEN** compilation succeeds without errors
+
+### Requirement: Docs build enforces prerequisite data
+The docs build workflow MUST require benchmark and fuzzy-testing outputs to exist before generating documentation pages that consume parsed variables.
+
+#### Scenario: Docs build fails when benchmark outputs are missing
+- **WHEN** user runs docs generation without required benchmark outputs
+- **THEN** the build fails with an explicit message describing missing benchmark prerequisites
+
+#### Scenario: Docs build fails when fuzzy-testing outputs are missing
+- **WHEN** user runs docs generation without required fuzzy-testing outputs
+- **THEN** the build fails with an explicit message describing missing fuzzy-testing prerequisites
+
+#### Scenario: Docs build succeeds when prerequisites are present
+- **WHEN** user runs benchmark and fuzzy-testing flows and then runs docs generation
+- **THEN** docs generation succeeds and renders pages that depend on parsed variables
+
+### Requirement: Docs prerequisite behavior is documented
+The project MUST document docs build prerequisites and expected failure behavior in user-facing documentation.
+
+#### Scenario: Users can find prerequisite guidance
+- **WHEN** a user reads setup guidance for documentation generation
+- **THEN** required pre-run commands or artifacts are explicitly listed with failure expectations

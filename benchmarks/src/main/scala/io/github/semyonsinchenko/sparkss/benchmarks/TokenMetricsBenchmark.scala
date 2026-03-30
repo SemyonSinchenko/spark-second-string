@@ -55,8 +55,24 @@ class TokenMetricsBenchmark {
   @Fork(1)
   @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def jaccardBigrams(): Double = {
+    Jaccard.similarity(left, right, 2)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def sorensenDice(): Double = {
     SorensenDice.similarity(left, right)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def sorensenDiceBigrams(): Double = {
+    SorensenDice.similarity(left, right, 2)
   }
 
   @Benchmark
@@ -71,6 +87,14 @@ class TokenMetricsBenchmark {
   @Fork(1)
   @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def overlapCoefficientBigrams(): Double = {
+    OverlapCoefficient.similarity(left, right, 2)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def cosine(): Double = {
     Cosine.similarity(left, right)
   }
@@ -79,7 +103,23 @@ class TokenMetricsBenchmark {
   @Fork(1)
   @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def cosineBigrams(): Double = {
+    Cosine.similarity(left, right, 2)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def braunBlanquet(): Double = {
     BraunBlanquet.similarity(left, right)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def braunBlanquetBigrams(): Double = {
+    BraunBlanquet.similarity(left, right, 2)
   }
 }

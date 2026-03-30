@@ -77,6 +77,14 @@ class NeedlemanWunschBenchmark {
   @Fork(1)
   @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def needlemanWunschCustomParameters(): Double = {
+    NeedlemanWunsch.similarity(left, right, 2, -2, -2)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def levenshteinBaseline(): Double = {
     Levenshtein.similarity(left, right)
   }

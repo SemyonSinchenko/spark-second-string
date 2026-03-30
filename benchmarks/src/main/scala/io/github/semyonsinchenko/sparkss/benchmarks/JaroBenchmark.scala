@@ -62,4 +62,12 @@ class JaroBenchmark {
   def jaroWinkler(): Double = {
     JaroWinkler.similarity(left, right)
   }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def jaroWinklerCustomPrefix(): Double = {
+    JaroWinkler.similarity(left, right, 0.2, 6)
+  }
 }

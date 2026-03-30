@@ -77,6 +77,14 @@ class SmithWatermanBenchmark {
   @Fork(1)
   @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def smithWatermanCustomParameters(): Double = {
+    SmithWaterman.similarity(left, right, 3, -1, -2)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def needlemanWunschBaseline(): Double = {
     NeedlemanWunsch.similarity(left, right)
   }

@@ -1,6 +1,8 @@
 package io.github.semyonsinchenko.sparkss.expressions.token
 
 import io.github.semyonsinchenko.sparkss.expressions.TokenMetricExpression
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure, TypeCheckSuccess}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
@@ -20,7 +22,7 @@ import org.apache.spark.unsafe.types.UTF8String
   *   val jaccard = Jaccard(col("a"), col("b"))
   *   }}}
   */
-case class Jaccard(left: Expression, right: Expression) extends TokenMetricExpression {
+case class Jaccard(left: Expression, right: Expression, ngramSize: Int = 0) extends TokenMetricExpression {
 
   private final val JaccardModule = "io.github.semyonsinchenko.sparkss.expressions.token.Jaccard$.MODULE$"
 
@@ -42,17 +44,33 @@ case class Jaccard(left: Expression, right: Expression) extends TokenMetricExpre
     * @return Jaccard similarity score between 0.0 and 1.0
     */
   override protected def evalTokenMetric(left: UTF8String, right: UTF8String): Double = {
-    Jaccard.similarity(left, right)
+    Jaccard.similarity(left, right, ngramSize)
   }
 
   override protected def genTokenMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
-    s"$JaccardModule.similarity($leftValue, $rightValue)"
+    s"$JaccardModule.similarity($leftValue, $rightValue, $ngramSize)"
+  }
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    super.checkInputDataTypes() match {
+      case TypeCheckSuccess =>
+        if (ngramSize < 0) {
+          TypeCheckFailure(s"ngramSize must be >= 0, but got $ngramSize")
+        } else {
+          TypeCheckSuccess
+        }
+      case failure => failure
+    }
   }
 }
 
 object Jaccard {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
+    similarity(left, right, 0)
+  }
+
+  private[sparkss] def similarity(left: UTF8String, right: UTF8String, ngramSize: Int): Double = {
     val leftString = left.toString
     val rightString = right.toString
 
@@ -63,8 +81,12 @@ object Jaccard {
       return 0.0
     }
 
-    val leftTokens = TokenMetricKernelHelper.tokenizeToSet(leftString)
-    val rightTokens = TokenMetricKernelHelper.tokenizeToSet(rightString)
+    val leftTokens =
+      if (ngramSize > 0) TokenMetricKernelHelper.tokenizeToCharNgramSet(leftString, ngramSize)
+      else TokenMetricKernelHelper.tokenizeToSet(leftString)
+    val rightTokens =
+      if (ngramSize > 0) TokenMetricKernelHelper.tokenizeToCharNgramSet(rightString, ngramSize)
+      else TokenMetricKernelHelper.tokenizeToSet(rightString)
     val interSize = TokenMetricKernelHelper.intersectionSize(leftTokens, rightTokens)
     val unionSize = leftTokens.size + rightTokens.size - interSize
 

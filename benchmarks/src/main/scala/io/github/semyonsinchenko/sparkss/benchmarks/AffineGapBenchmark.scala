@@ -77,6 +77,14 @@ class AffineGapBenchmark {
   @Fork(1)
   @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
+  def affineGapCustomParameters(): Double = {
+    AffineGap.similarity(left, right, 2, 3, 2)
+  }
+
+  @Benchmark
+  @Fork(1)
+  @Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+  @Measurement(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
   def needlemanWunschBaseline(): Double = {
     NeedlemanWunsch.similarity(left, right)
   }
