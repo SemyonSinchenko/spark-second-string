@@ -133,6 +133,8 @@ lazy val fuzzyTesting = Project("fuzzy-testing", file("fuzzy-testing"))
   .settings(commonSettings: _*)
   .settings(
     name := "spark-second-string-fuzzy-testing",
+    Compile / run / fork := true,
+    Compile / run / javaOptions ++= sparkJavaOptions,
     publish / skip := true,
     resolvers += "Cogcomp" at "https://cogcomp.seas.upenn.edu/m2repo/",
     libraryDependencies ++= Seq(
