@@ -32,7 +32,7 @@ case class MongeElkan(
   }
 
   override protected def genTokenMetricCode(ctx: CodegenContext, leftValue: String, rightValue: String): String = {
-    s"$MongeElkanModule.similarity($leftValue, $rightValue, \"$innerMetric\", $ngramSize)"
+    s"""$MongeElkanModule.similarity($leftValue, $rightValue, \"$innerMetric\", $ngramSize)"""
   }
 
   override def checkInputDataTypes(): TypeCheckResult = {
