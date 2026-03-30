@@ -1,7 +1,13 @@
 package io.github.semyonsinchenko.sparkss.expressions.token
 
 import io.github.semyonsinchenko.sparkss.expressions.TokenMetricExpression
-import io.github.semyonsinchenko.sparkss.expressions.matrix.{Jaro, JaroWinkler, Levenshtein, NeedlemanWunsch, SmithWaterman}
+import io.github.semyonsinchenko.sparkss.expressions.matrix.{
+  Jaro,
+  JaroWinkler,
+  Levenshtein,
+  NeedlemanWunsch,
+  SmithWaterman
+}
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure, TypeCheckSuccess}
 import org.apache.spark.sql.catalyst.expressions.Expression
@@ -76,7 +82,11 @@ object MongeElkan {
     }
 
     val rawScore =
-      (directedSimilarity(leftTokens, rightTokens, innerMetric) + directedSimilarity(rightTokens, leftTokens, innerMetric)) / 2.0
+      (directedSimilarity(leftTokens, rightTokens, innerMetric) + directedSimilarity(
+        rightTokens,
+        leftTokens,
+        innerMetric
+      )) / 2.0
     TokenMetricKernelHelper.clampToUnitInterval(rawScore)
   }
 
@@ -127,8 +137,8 @@ object MongeElkan {
   private def tokenPairScore(leftToken: UTF8String, rightToken: UTF8String, innerMetric: String): Double = {
     innerMetric match {
       case "jaro_winkler" => JaroWinkler.similarity(leftToken, rightToken)
-      case "jaro" => Jaro.similarity(leftToken, rightToken)
-      case "levenshtein" => Levenshtein.similarity(leftToken, rightToken)
+      case "jaro"         => Jaro.similarity(leftToken, rightToken)
+      case "levenshtein"  => Levenshtein.similarity(leftToken, rightToken)
       case "needleman_wunsch" =>
         NeedlemanWunsch.similarity(
           leftToken,

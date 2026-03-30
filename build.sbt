@@ -3,7 +3,6 @@ import laika.format.Markdown.GitHubFlavor
 
 import scala.sys.process.*
 
-// Spark version setting with default value
 val sparkVersion = settingKey[String]("Spark version to build against")
 ThisBuild / sparkVersion := sys.props.getOrElse("sparkVersion", "4.0.2")
 
@@ -15,7 +14,7 @@ ThisBuild / baseVersion := {
 
   raw match {
     case SemVerCore(major, minor, patch) => s"$major.$minor.$patch"
-    case _ => raw // fallback if version doesn't start with x.y.z
+    case _                               => raw // fallback if version doesn't start with x.y.z
   }
 }
 
@@ -25,12 +24,11 @@ val generateDocsVariables = taskKey[Unit]("Generate Laika variable files from be
 ThisBuild / scalaVersion := {
   val sv = (ThisBuild / sparkVersion).value
   if (sv.startsWith("3.5")) {
-    "2.12.20"
+    "2.12.21"
   } else if (sv.startsWith("4.")) {
-    "2.13.16"
+    "2.13.18"
   } else {
-    // Default to 2.13 for unknown versions
-    "2.13.16"
+    "2.13.18"
   }
 }
 
@@ -90,8 +88,9 @@ lazy val root = (project in file("."))
     name := "spark-second-string",
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value % Provided,
-      "commons-codec" % "commons-codec" % "1.17.1",
-      "org.scalatest" %% "scalatest" % "3.2.19" % Test
+      "commons-codec" % "commons-codec" % "1.21.0" % Provided,
+      "org.scalatest" %% "scalatest" % "3.2.20" % Test,
+      "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
     )
   )
 
@@ -105,22 +104,25 @@ lazy val benchmarks = (project in file("benchmarks"))
     resolvers += "Cogcomp" at "https://cogcomp.seas.upenn.edu/m2repo/",
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value,
+      "commons-codec" % "commons-codec" % "1.21.0",
       "com.wcohen" % "SecondString" % "1.0" % Runtime
     )
   )
   .dependsOn(root)
 
+// Benchmark tools subproject (e.g., report generation)
 lazy val benchmarkTools = (project in file("benchmark-tools"))
   .settings(commonSettings: _*)
   .settings(
     name := "spark-second-string-benchmark-tools",
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %% "ujson" % "3.3.1"
+      "com.lihaoyi" %% "ujson" % "4.4.3"
     )
   )
   .dependsOn(benchmarks)
 
+// Fuzzy testing subproject
 lazy val fuzzyTesting = Project("fuzzy-testing", file("fuzzy-testing"))
   .settings(commonSettings: _*)
   .settings(
@@ -130,13 +132,15 @@ lazy val fuzzyTesting = Project("fuzzy-testing", file("fuzzy-testing"))
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value,
       "org.apache.spark" %% "spark-mllib" % (ThisBuild / sparkVersion).value,
+      "commons-codec" % "commons-codec" % "1.21.0",
       "com.wcohen" % "SecondString" % "1.0" % Runtime,
-      "org.scalatest" %% "scalatest" % "3.2.19" % Test
+      "org.scalatest" %% "scalatest" % "3.2.20" % Test
     )
   )
   .dependsOn(root)
 
-lazy val docs = Project("docs", file("docs"))
+lazy val docs = project
+  .in(file("docs"))
   .enablePlugins(LaikaPlugin)
   .settings(commonSettings: _*)
   .settings(
@@ -156,20 +160,31 @@ lazy val docs = Project("docs", file("docs"))
 
       if (!benchmarkReport.exists()) {
         sys.error(
-          s"Docs build precondition failed: benchmark report is missing at ${benchmarkReport.getAbsolutePath}. Run ./dev/benchmarks_suite.sh --mode compare-only first."
+          s"""
+           | Docs build precondition failed: benchmark report is missing at ${benchmarkReport.getAbsolutePath}.
+           | Run ./dev/benchmarks_suite.sh --mode compare-only first.""".stripMargin
         )
       }
 
       if (!fuzzyReport.exists()) {
         sys.error(
-          s"Docs build precondition failed: fuzzy testing report is missing at ${fuzzyReport.getAbsolutePath}. Run the fuzzy-testing CLI to generate fuzzy-testing/target/reports/fuzzy-report.md first."
+          s"""
+           | Docs build precondition failed: fuzzy testing report is missing at ${fuzzyReport.getAbsolutePath}.
+           | Run the fuzzy-testing CLI to generate fuzzy-testing/target/reports/fuzzy-report.md first.""".stripMargin
         )
       }
 
       IO.createDirectory(benchmarkVars.getParentFile)
 
       val benchmarkExit = Process(
-        Seq("python3", benchmarkParser.getAbsolutePath, "--input", benchmarkReport.getAbsolutePath, "--output", benchmarkVars.getAbsolutePath),
+        Seq(
+          "python3",
+          benchmarkParser.getAbsolutePath,
+          "--input",
+          benchmarkReport.getAbsolutePath,
+          "--output",
+          benchmarkVars.getAbsolutePath
+        ),
         repoRoot
       ).!
       if (benchmarkExit != 0) {
@@ -177,7 +192,14 @@ lazy val docs = Project("docs", file("docs"))
       }
 
       val fuzzyExit = Process(
-        Seq("python3", fuzzyParser.getAbsolutePath, "--input", fuzzyReport.getAbsolutePath, "--output", fuzzyVars.getAbsolutePath),
+        Seq(
+          "python3",
+          fuzzyParser.getAbsolutePath,
+          "--input",
+          fuzzyReport.getAbsolutePath,
+          "--output",
+          fuzzyVars.getAbsolutePath
+        ),
         repoRoot
       ).!
       if (fuzzyExit != 0) {

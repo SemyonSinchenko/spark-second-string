@@ -25,32 +25,7 @@ case class RefinedSoundex(child: Expression) extends PhoneticExpression {
 object RefinedSoundex {
 
   private val Mapping: Array[Int] = Array(
-    0,
-    1,
-    2,
-    3,
-    0,
-    5,
-    6,
-    0,
-    0,
-    6,
-    2,
-    7,
-    8,
-    8,
-    0,
-    1,
-    2,
-    9,
-    2,
-    3,
-    0,
-    5,
-    0,
-    2,
-    0,
-    2
+    0, 1, 2, 3, 0, 5, 6, 0, 0, 6, 2, 7, 8, 8, 0, 1, 2, 9, 2, 3, 0, 5, 0, 2, 0, 2
   )
 
   private def normalizeAlphabeticUpper(input: String): String = {

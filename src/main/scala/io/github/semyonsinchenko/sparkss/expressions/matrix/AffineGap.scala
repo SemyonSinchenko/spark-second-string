@@ -32,12 +32,12 @@ case class AffineGap(
   override def checkInputDataTypes(): TypeCheckResult = {
     super.checkInputDataTypes() match {
       case TypeCheckSuccess =>
-        if (mismatchPenalty <= 0) {
-          TypeCheckFailure(s"mismatchPenalty must be > 0, but got $mismatchPenalty")
-        } else if (gapOpenPenalty <= 0) {
-          TypeCheckFailure(s"gapOpenPenalty must be > 0, but got $gapOpenPenalty")
-        } else if (gapExtendPenalty <= 0) {
-          TypeCheckFailure(s"gapExtendPenalty must be > 0, but got $gapExtendPenalty")
+        if (mismatchPenalty >= 0) {
+          TypeCheckFailure(s"mismatchPenalty must be < 0, but got $mismatchPenalty")
+        } else if (gapOpenPenalty >= 0) {
+          TypeCheckFailure(s"gapOpenPenalty must be < 0, but got $gapOpenPenalty")
+        } else if (gapExtendPenalty >= 0) {
+          TypeCheckFailure(s"gapExtendPenalty must be < 0, but got $gapExtendPenalty")
         } else {
           TypeCheckSuccess
         }
@@ -48,9 +48,9 @@ case class AffineGap(
 
 object AffineGap {
 
-  private[sparkss] final val DefaultMismatchPenalty = 1
-  private[sparkss] final val DefaultGapOpenPenalty = 2
-  private[sparkss] final val DefaultGapExtendPenalty = 1
+  private[sparkss] final val DefaultMismatchPenalty = -1
+  private[sparkss] final val DefaultGapOpenPenalty = -2
+  private[sparkss] final val DefaultGapExtendPenalty = -1
   private final val Infinity = Int.MaxValue / 4
 
   private val workspace = new ThreadLocal[Array[Array[Int]]]
@@ -76,6 +76,10 @@ object AffineGap {
       gapOpenPenalty: Int,
       gapExtendPenalty: Int
   ): Double = {
+    val mismatchCost = -mismatchPenalty
+    val gapOpenCost = -gapOpenPenalty
+    val gapExtendCost = -gapExtendPenalty
+
     val resolved = new MatrixMetricKernelHelper.ResolvedStrings(left, right)
     val leftLength = resolved.leftLength
     val rightLength = resolved.rightLength
@@ -104,7 +108,7 @@ object AffineGap {
 
     var j = 1
     while (j <= rightLength) {
-      previousGapInLeft(j) = gapCost(j, gapOpenPenalty, gapExtendPenalty)
+      previousGapInLeft(j) = gapCost(j, gapOpenCost, gapExtendCost)
       j += 1
     }
 
@@ -112,13 +116,13 @@ object AffineGap {
     while (i <= leftLength) {
       currentMatch(0) = Infinity
       currentGapInLeft(0) = Infinity
-      currentGapInRight(0) = gapCost(i, gapOpenPenalty, gapExtendPenalty)
+      currentGapInRight(0) = gapCost(i, gapOpenCost, gapExtendCost)
 
       val leftChar = resolved.leftCharAt(i - 1)
 
       j = 1
       while (j <= rightLength) {
-        val substitution = if (leftChar == resolved.rightCharAt(j - 1)) 0 else mismatchPenalty
+        val substitution = if (leftChar == resolved.rightCharAt(j - 1)) 0 else mismatchCost
 
         currentMatch(j) = safePlus(
           min3(previousMatch(j - 1), previousGapInLeft(j - 1), previousGapInRight(j - 1)),
@@ -126,15 +130,15 @@ object AffineGap {
         )
 
         currentGapInLeft(j) = min3(
-          safePlus(currentMatch(j - 1), gapOpenPenalty + gapExtendPenalty),
-          safePlus(currentGapInLeft(j - 1), gapExtendPenalty),
-          safePlus(currentGapInRight(j - 1), gapOpenPenalty + gapExtendPenalty)
+          safePlus(currentMatch(j - 1), gapOpenCost + gapExtendCost),
+          safePlus(currentGapInLeft(j - 1), gapExtendCost),
+          safePlus(currentGapInRight(j - 1), gapOpenCost + gapExtendCost)
         )
 
         currentGapInRight(j) = min3(
-          safePlus(previousMatch(j), gapOpenPenalty + gapExtendPenalty),
-          safePlus(previousGapInRight(j), gapExtendPenalty),
-          safePlus(previousGapInLeft(j), gapOpenPenalty + gapExtendPenalty)
+          safePlus(previousMatch(j), gapOpenCost + gapExtendCost),
+          safePlus(previousGapInRight(j), gapExtendCost),
+          safePlus(previousGapInLeft(j), gapOpenCost + gapExtendCost)
         )
 
         j += 1

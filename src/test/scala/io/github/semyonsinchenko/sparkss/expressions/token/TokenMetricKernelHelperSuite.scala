@@ -43,4 +43,19 @@ class TokenMetricKernelHelperSuite extends AnyFunSuite {
 
     assert(sequence.isEmpty)
   }
+
+  test("unicode tokenization covers non-ascii separators and zero-width boundaries") {
+    val nbsp = TokenMetricKernelHelper.tokenizeToSet("alpha\u00A0beta gamma")
+    assert(nbsp.size() === 2)
+    assert(nbsp.contains("alpha\u00A0beta"))
+    assert(nbsp.contains("gamma"))
+
+    val zeroWidth = TokenMetricKernelHelper.tokenizeToSet("alpha\u200Bbeta")
+    assert(zeroWidth.size() === 1)
+    assert(zeroWidth.contains("alpha\u200Bbeta"))
+
+    val cjkNoWhitespace = TokenMetricKernelHelper.tokenizeToSet("\u5317\u4EAC\u5927\u5B66")
+    assert(cjkNoWhitespace.size() === 1)
+    assert(cjkNoWhitespace.contains("\u5317\u4EAC\u5927\u5B66"))
+  }
 }

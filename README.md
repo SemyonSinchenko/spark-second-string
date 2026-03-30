@@ -1,8 +1,11 @@
 # spark-second-string
 
-`spark-second-string` is a Spark-native string-similarity library designed for identity-resolution and record-linkage pipelines.
+`spark-second-string` is a Spark-native string-similarity library designed for identity-resolution and record-linkage
+pipelines.
 
-It helps you add a fast, low-cost similarity stage before heavier model-based ranking or LLM-based matching. In practical pipelines, this supports cheap blocking, candidate pruning, and explainable score-based filtering before expensive downstream inference.
+It helps you add a fast, low-cost similarity stage before heavier model-based ranking or LLM-based matching. In
+practical pipelines, this supports cheap blocking, candidate pruning, and explainable score-based filtering before
+expensive downstream inference.
 
 ## Why use it
 
@@ -15,7 +18,8 @@ It helps you add a fast, low-cost similarity stage before heavier model-based ra
 Current metrics include:
 
 - Token-based: `jaccard`, `sorensen_dice`, `overlap_coefficient`, `cosine`, `braun_blanquet`, `monge_elkan`
-- Matrix/edit-distance family: `levenshtein`, `lcs_similarity`, `jaro`, `jaro_winkler`, `needleman_wunsch`, `smith_waterman`, `affine_gap`
+- Matrix/edit-distance family: `levenshtein`, `lcs_similarity`, `jaro`, `jaro_winkler`, `needleman_wunsch`,
+  `smith_waterman`, `affine_gap`
 
 ## Quick Start
 
@@ -59,4 +63,5 @@ Then build docs:
 sbt docs/laikaSite
 ```
 
-If prerequisite artifacts are missing, docs build fails with explicit instructions that point to the required command(s).
+If prerequisite artifacts are missing, docs build fails with explicit instructions that point to the required command(
+s).

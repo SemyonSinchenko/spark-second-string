@@ -16,7 +16,7 @@ class ConfigurableMatrixMetricsSuite extends AnyFunSuite {
     assert(JaroWinkler.similarity(left, right) === JaroWinkler.similarity(left, right, 0.1, 4))
     assert(NeedlemanWunsch.similarity(left, right) === NeedlemanWunsch.similarity(left, right, 1, -1, -1))
     assert(SmithWaterman.similarity(left, right) === SmithWaterman.similarity(left, right, 2, -1, -1))
-    assert(AffineGap.similarity(left, right) === AffineGap.similarity(left, right, 1, 2, 1))
+    assert(AffineGap.similarity(left, right) === AffineGap.similarity(left, right, -1, -2, -1))
   }
 
   test("custom matrix parameters affect scores") {
@@ -35,8 +35,8 @@ class ConfigurableMatrixMetricsSuite extends AnyFunSuite {
     val swCustom = SmithWaterman.similarity(left, right, 3, -1, -2)
     assert(swCustom !== swDefault)
 
-    val affineDefault = AffineGap.similarity(left, right, 1, 2, 1)
-    val affineCustom = AffineGap.similarity(left, right, 2, 3, 2)
+    val affineDefault = AffineGap.similarity(left, right, -1, -2, -1)
+    val affineCustom = AffineGap.similarity(left, right, -2, -3, -2)
     assert(affineCustom !== affineDefault)
   }
 
@@ -50,7 +50,9 @@ class ConfigurableMatrixMetricsSuite extends AnyFunSuite {
     assert(
       SmithWaterman(Literal("a"), Literal("b"), 2, 1, -1).checkInputDataTypes().isInstanceOf[TypeCheckFailure]
     )
-    assert(AffineGap(Literal("a"), Literal("b"), 1, 0, 1).checkInputDataTypes().isInstanceOf[TypeCheckFailure])
+    assert(AffineGap(Literal("a"), Literal("b"), 1, -2, -1).checkInputDataTypes().isInstanceOf[TypeCheckFailure])
+    assert(AffineGap(Literal("a"), Literal("b"), -1, 2, -1).checkInputDataTypes().isInstanceOf[TypeCheckFailure])
+    assert(AffineGap(Literal("a"), Literal("b"), -1, -2, 1).checkInputDataTypes().isInstanceOf[TypeCheckFailure])
 
     assert(JaroWinkler(Literal("a"), Literal("b"), 0.1, 4).checkInputDataTypes() === TypeCheckSuccess)
   }

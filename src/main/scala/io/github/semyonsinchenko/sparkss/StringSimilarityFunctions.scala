@@ -276,6 +276,17 @@ object StringSimilarityFunctions {
     )
   }
 
+  /** Affine-gap sequence alignment similarity.
+    *
+    * Penalty parameters use the same sign convention as Needleman-Wunsch and Smith-Waterman: mismatch/open/extend
+    * penalties must be negative values.
+    *
+    * Migration note for pre-1.0 users:
+    *   - old style: `affine_gap(left, right, mismatchPenalty = 1, gapOpenPenalty = 2, gapExtendPenalty = 1)`
+    *   - new style: `affine_gap(left, right, mismatchPenalty = -1, gapOpenPenalty = -2, gapExtendPenalty = -1)`
+    *
+    * Positive penalty values are rejected at analysis time with a fail-fast type-check error.
+    */
   def affine_gap(
       left: Column,
       right: Column,

@@ -1268,6 +1268,45 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     }
   }
 
+  test("token and matrix metric families preserve interpreted and codegen parity for unicode rows") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(
+      ("caf\u00E9", "cafe"),
+      ("\u6771\u4EAC", "\u5927\u962A"),
+      ("\uD83D\uDE00", "\uD83D\uDE01"),
+      ("hello \u4E16\u754C", "hello world"),
+      ("alpha\u200Bbeta", "alpha beta")
+    ).toDF("left", "right")
+
+    val tokenMetrics = Seq(
+      "jaccard" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaccard(left, right)),
+      "sorensen_dice" -> ((left: Column, right: Column) => StringSimilarityFunctions.sorensenDice(left, right)),
+      "overlap_coefficient" -> ((left: Column, right: Column) =>
+        StringSimilarityFunctions.overlapCoefficient(left, right)
+      ),
+      "cosine" -> ((left: Column, right: Column) => StringSimilarityFunctions.cosine(left, right)),
+      "braun_blanquet" -> ((left: Column, right: Column) => StringSimilarityFunctions.braunBlanquet(left, right)),
+      "monge_elkan" -> ((left: Column, right: Column) => StringSimilarityFunctions.monge_elkan(left, right))
+    )
+    val matrixMetrics = Seq(
+      "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right)),
+      "lcs_similarity" -> ((left: Column, right: Column) => StringSimilarityFunctions.lcsSimilarity(left, right)),
+      "jaro" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaro(left, right)),
+      "jaro_winkler" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right)),
+      "needleman_wunsch" -> ((left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right)),
+      "smith_waterman" -> ((left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right)),
+      "affine_gap" -> ((left: Column, right: Column) => StringSimilarityFunctions.affine_gap(left, right))
+    )
+
+    (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
+      val generated = evaluateWithCodegen(frame, metric, enabled = true)
+      val interpreted = evaluateWithCodegen(frame, metric, enabled = false)
+      assert(generated == interpreted, s"Unicode codegen parity failed for $name")
+    }
+  }
+
   test("dsl and sql metric rosters preserve naming and arity parity") {
     spark.registerStringSimilarityFunctions()
 

@@ -63,7 +63,7 @@ object FuzzyTestingCli {
 
     out match {
       case Some(path) => Right(CliOptions(seed = seed, rows = rows, out = path, saveOutput = saveOutput))
-      case None => Left("Missing required option: --out")
+      case None       => Left("Missing required option: --out")
     }
   }
 

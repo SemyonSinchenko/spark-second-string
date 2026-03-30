@@ -209,7 +209,10 @@ private[fuzzy] object FuzzyTestingPipeline {
       rightColumn: String = "input_right"
   ): DataFrame = {
     val spec = metricSpecFor(metric)
-    input.withColumn("second_string_scaled", scaledLegacyBaseline(col(rawColumn), col(leftColumn), col(rightColumn), spec))
+    input.withColumn(
+      "second_string_scaled",
+      scaledLegacyBaseline(col(rawColumn), col(leftColumn), col(rightColumn), spec)
+    )
   }
 
   private[fuzzy] def generateInputData(spark: SparkSession, seed: Long, rows: Long): DataFrame = {
@@ -221,11 +224,14 @@ private[fuzzy] object FuzzyTestingPipeline {
       generateLegacyPrefixInputDataWithCase(spark, seed, rows)
     } else {
       import spark.implicits._
-      spark.range(rows).map { id =>
-        val selectedCase = selectGenerationCase(seed, id)
-        val (left, right) = buildPairForCase(seed, id, selectedCase)
-        GeneratedInputRow(left = left, right = right, case_type = selectedCase.caseType)
-      }.toDF()
+      spark
+        .range(rows)
+        .map { id =>
+          val selectedCase = selectGenerationCase(seed, id)
+          val (left, right) = buildPairForCase(seed, id, selectedCase)
+          GeneratedInputRow(left = left, right = right, case_type = selectedCase.caseType)
+        }
+        .toDF()
     }
   }
 
@@ -239,14 +245,15 @@ private[fuzzy] object FuzzyTestingPipeline {
 
     configured match {
       case LegacyPrefixMode => LegacyPrefixMode
-      case _ => RandomCasesMode
+      case _                => RandomCasesMode
     }
   }
 
   private def generateLegacyPrefixInputDataWithCase(spark: SparkSession, seed: Long, rows: Long): DataFrame = {
     val seedLiteral = lit(seed.toString)
 
-    spark.range(rows)
+    spark
+      .range(rows)
       .withColumn("left_hash", sha2(concat(seedLiteral, lit("-left-"), col("id").cast("string")), 256))
       .withColumn("right_hash", sha2(concat(seedLiteral, lit("-right-"), col("id").cast("string")), 256))
       .select(
@@ -275,10 +282,12 @@ private[fuzzy] object FuzzyTestingPipeline {
       val selectedWeight = random.nextInt(TotalCaseWeight)
 
       var runningWeight = 0
-      GenerationCases.find { generationCase =>
-        runningWeight += generationCase.weight
-        selectedWeight < runningWeight
-      }.getOrElse(GenerationCases.last)
+      GenerationCases
+        .find { generationCase =>
+          runningWeight += generationCase.weight
+          selectedWeight < runningWeight
+        }
+        .getOrElse(GenerationCases.last)
     }
   }
 
@@ -438,7 +447,14 @@ private[fuzzy] object FuzzyTestingPipeline {
         abs(col("native_score") - col("second_string_scaled")) /
           greatest((abs(col("native_score")) + abs(col("second_string_scaled"))) / lit(2.0), lit(Epsilon))
       )
-      .select("input_left", "input_right", "native_score", "second_string_raw", "second_string_scaled", "relative_delta")
+      .select(
+        "input_left",
+        "input_right",
+        "native_score",
+        "second_string_raw",
+        "second_string_scaled",
+        "relative_delta"
+      )
   }
 
   private def correlations(scored: DataFrame, rowCount: Long): (Double, Double) = {
@@ -491,7 +507,7 @@ private[fuzzy] object FuzzyTestingPipeline {
   private def scaledLegacyBaseline(raw: Column, inputLeft: Column, inputRight: Column, spec: MetricSpec): Column = {
     val emptyPairScaled = spec.emptyPairScaledValue match {
       case Some(value) => lit(value)
-      case None => lit(null).cast("double")
+      case None        => lit(null).cast("double")
     }
 
     val candidate = when(length(inputLeft) === lit(0) && length(inputRight) === lit(0), emptyPairScaled)
@@ -501,7 +517,8 @@ private[fuzzy] object FuzzyTestingPipeline {
   }
 
   private def sanitizeAndClamp(raw: Column, candidate: Column): Column = {
-    val rawIsInvalid = raw.isNull || isnan(raw) || raw === lit(Double.PositiveInfinity) || raw === lit(Double.NegativeInfinity)
+    val rawIsInvalid =
+      raw.isNull || isnan(raw) || raw === lit(Double.PositiveInfinity) || raw === lit(Double.NegativeInfinity)
     when(rawIsInvalid, lit(null).cast("double"))
       .otherwise(greatest(lit(0.0), least(lit(1.0), candidate)))
   }
@@ -532,24 +549,27 @@ private[fuzzy] object LegacySecondStringUdfs {
 
   private final case class LegacyScorer(className: String) extends ((String, String) => Double) with Serializable {
     @transient private lazy val instanceAndMethod: (AnyRef, java.lang.reflect.Method) = {
-      val algorithmClass = try {
-        Class.forName(className)
-      } catch {
-        case _: ClassNotFoundException =>
-          throw new IllegalStateException(
-            s"Legacy algorithm class '$className' is unavailable. Add legacy Java SecondString dependency to run fuzzy testing."
-          )
-      }
+      val algorithmClass =
+        try {
+          Class.forName(className)
+        } catch {
+          case _: ClassNotFoundException =>
+            throw new IllegalStateException(
+              s"Legacy algorithm class '$className' is unavailable. Add legacy Java SecondString dependency to run fuzzy testing."
+            )
+        }
 
-      val scoreMethod = algorithmClass.getMethods.find { method =>
-        method.getName == ScoreMethodName &&
-        method.getParameterCount == 2 &&
-        method.getParameterTypes.sameElements(Array(classOf[String], classOf[String]))
-      }.getOrElse {
-        throw new IllegalStateException(
-          s"Legacy algorithm class '$className' does not expose score(String, String)."
-        )
-      }
+      val scoreMethod = algorithmClass.getMethods
+        .find { method =>
+          method.getName == ScoreMethodName &&
+          method.getParameterCount == 2 &&
+          method.getParameterTypes.sameElements(Array(classOf[String], classOf[String]))
+        }
+        .getOrElse {
+          throw new IllegalStateException(
+            s"Legacy algorithm class '$className' does not expose score(String, String)."
+          )
+        }
 
       val instance = algorithmClass.getDeclaredConstructor().newInstance().asInstanceOf[AnyRef]
       (instance, scoreMethod)
