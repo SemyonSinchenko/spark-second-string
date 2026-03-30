@@ -14,8 +14,8 @@ import io.github.semyonsinchenko.sparkss.expressions.matrix.NeedlemanWunsch
 import io.github.semyonsinchenko.sparkss.expressions.matrix.SmithWaterman
 import io.github.semyonsinchenko.sparkss.expressions.matrix.AffineGap
 import io.github.semyonsinchenko.sparkss.expressions.phonetic.{DoubleMetaphone, RefinedSoundex, Soundex}
+import io.github.semyonsinchenko.sparkss.internal.SparkColumnInterop
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.functions.col
 
 object StringSimilarityFunctions {
@@ -25,10 +25,9 @@ object StringSimilarityFunctions {
   }
 
   def jaccard(left: Column, right: Column, ngramSize: Int): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(Jaccard(leftExpr, rightExpr, ngramSize))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(Jaccard(leftExpr, rightExpr, ngramSize))
   }
 
   def jaccard(left: String, right: String): Column = {
@@ -44,10 +43,9 @@ object StringSimilarityFunctions {
   }
 
   def sorensenDice(left: Column, right: Column, ngramSize: Int): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(SorensenDice(leftExpr, rightExpr, ngramSize))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(SorensenDice(leftExpr, rightExpr, ngramSize))
   }
 
   def sorensenDice(left: String, right: String): Column = {
@@ -63,10 +61,9 @@ object StringSimilarityFunctions {
   }
 
   def overlapCoefficient(left: Column, right: Column, ngramSize: Int): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(OverlapCoefficient(leftExpr, rightExpr, ngramSize))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(OverlapCoefficient(leftExpr, rightExpr, ngramSize))
   }
 
   def overlapCoefficient(left: String, right: String): Column = {
@@ -82,10 +79,9 @@ object StringSimilarityFunctions {
   }
 
   def cosine(left: Column, right: Column, ngramSize: Int): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(Cosine(leftExpr, rightExpr, ngramSize))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(Cosine(leftExpr, rightExpr, ngramSize))
   }
 
   def cosine(left: String, right: String): Column = {
@@ -101,10 +97,9 @@ object StringSimilarityFunctions {
   }
 
   def braunBlanquet(left: Column, right: Column, ngramSize: Int): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(BraunBlanquet(leftExpr, rightExpr, ngramSize))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(BraunBlanquet(leftExpr, rightExpr, ngramSize))
   }
 
   def braunBlanquet(left: String, right: String): Column = {
@@ -128,10 +123,9 @@ object StringSimilarityFunctions {
   }
 
   def monge_elkan(left: Column, right: Column, innerMetric: String, ngramSize: Int): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(MongeElkan(leftExpr, rightExpr, innerMetric, ngramSize))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(MongeElkan(leftExpr, rightExpr, innerMetric, ngramSize))
   }
 
   def monge_elkan(left: String, right: String): Column = {
@@ -151,10 +145,9 @@ object StringSimilarityFunctions {
   }
 
   def levenshtein(left: Column, right: Column): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(Levenshtein(leftExpr, rightExpr))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(Levenshtein(leftExpr, rightExpr))
   }
 
   def levenshtein(left: String, right: String): Column = {
@@ -162,10 +155,9 @@ object StringSimilarityFunctions {
   }
 
   def lcsSimilarity(left: Column, right: Column): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(LcsSimilarity(leftExpr, rightExpr))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(LcsSimilarity(leftExpr, rightExpr))
   }
 
   def lcsSimilarity(left: String, right: String): Column = {
@@ -173,10 +165,9 @@ object StringSimilarityFunctions {
   }
 
   def jaro(left: Column, right: Column): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(Jaro(leftExpr, rightExpr))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(Jaro(leftExpr, rightExpr))
   }
 
   def jaro(left: String, right: String): Column = {
@@ -188,10 +179,9 @@ object StringSimilarityFunctions {
   }
 
   def jaroWinkler(left: Column, right: Column, prefixScale: Double, prefixCap: Int): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(JaroWinkler(leftExpr, rightExpr, prefixScale, prefixCap))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(JaroWinkler(leftExpr, rightExpr, prefixScale, prefixCap))
   }
 
   def jaroWinkler(left: String, right: String): Column = {
@@ -219,11 +209,9 @@ object StringSimilarityFunctions {
       mismatchPenalty: Int,
       gapPenalty: Int
   ): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode =
-      convertExpressionToColumnNode(NeedlemanWunsch(leftExpr, rightExpr, matchScore, mismatchPenalty, gapPenalty))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(NeedlemanWunsch(leftExpr, rightExpr, matchScore, mismatchPenalty, gapPenalty))
   }
 
   def needlemanWunsch(left: String, right: String): Column = {
@@ -251,11 +239,9 @@ object StringSimilarityFunctions {
       mismatchPenalty: Int,
       gapPenalty: Int
   ): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode =
-      convertExpressionToColumnNode(SmithWaterman(leftExpr, rightExpr, matchScore, mismatchPenalty, gapPenalty))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(SmithWaterman(leftExpr, rightExpr, matchScore, mismatchPenalty, gapPenalty))
   }
 
   def smithWaterman(left: String, right: String): Column = {
@@ -294,11 +280,9 @@ object StringSimilarityFunctions {
       gapOpenPenalty: Int,
       gapExtendPenalty: Int
   ): Column = {
-    val leftExpr = convertColumnNodeToExpression(left.node.asInstanceOf[AnyRef])
-    val rightExpr = convertColumnNodeToExpression(right.node.asInstanceOf[AnyRef])
-    val expressionNode =
-      convertExpressionToColumnNode(AffineGap(leftExpr, rightExpr, mismatchPenalty, gapOpenPenalty, gapExtendPenalty))
-    convertColumnNodeToColumn(expressionNode)
+    val leftExpr = SparkColumnInterop.toExpression(left)
+    val rightExpr = SparkColumnInterop.toExpression(right)
+    SparkColumnInterop.fromExpression(AffineGap(leftExpr, rightExpr, mismatchPenalty, gapOpenPenalty, gapExtendPenalty))
   }
 
   def affine_gap(left: String, right: String): Column = {
@@ -316,9 +300,8 @@ object StringSimilarityFunctions {
   }
 
   def soundex(input: Column): Column = {
-    val inputExpr = convertColumnNodeToExpression(input.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(Soundex(inputExpr))
-    convertColumnNodeToColumn(expressionNode)
+    val inputExpr = SparkColumnInterop.toExpression(input)
+    SparkColumnInterop.fromExpression(Soundex(inputExpr))
   }
 
   def soundex(inputColName: String): Column = {
@@ -326,9 +309,8 @@ object StringSimilarityFunctions {
   }
 
   def refinedSoundex(input: Column): Column = {
-    val inputExpr = convertColumnNodeToExpression(input.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(RefinedSoundex(inputExpr))
-    convertColumnNodeToColumn(expressionNode)
+    val inputExpr = SparkColumnInterop.toExpression(input)
+    SparkColumnInterop.fromExpression(RefinedSoundex(inputExpr))
   }
 
   def refinedSoundex(inputColName: String): Column = {
@@ -336,33 +318,12 @@ object StringSimilarityFunctions {
   }
 
   def doubleMetaphone(input: Column): Column = {
-    val inputExpr = convertColumnNodeToExpression(input.node.asInstanceOf[AnyRef])
-    val expressionNode = convertExpressionToColumnNode(DoubleMetaphone(inputExpr))
-    convertColumnNodeToColumn(expressionNode)
+    val inputExpr = SparkColumnInterop.toExpression(input)
+    SparkColumnInterop.fromExpression(DoubleMetaphone(inputExpr))
   }
 
   def doubleMetaphone(inputColName: String): Column = {
     doubleMetaphone(col(inputColName))
   }
 
-  private def convertColumnNodeToExpression(node: AnyRef): Expression = {
-    val moduleClass = Class.forName("org.apache.spark.sql.classic.ColumnNodeToExpressionConverter$")
-    val module = moduleClass.getField("MODULE$").get(null)
-    val columnNodeClass = Class.forName("org.apache.spark.sql.internal.ColumnNode")
-    val apply = moduleClass.getMethod("apply", columnNodeClass)
-    apply.invoke(module, node).asInstanceOf[Expression]
-  }
-
-  private def convertExpressionToColumnNode(expression: Expression): AnyRef = {
-    val moduleClass = Class.forName("org.apache.spark.sql.classic.ExpressionColumnNode$")
-    val module = moduleClass.getField("MODULE$").get(null)
-    val apply = moduleClass.getMethod("apply", classOf[Expression])
-    apply.invoke(module, expression).asInstanceOf[AnyRef]
-  }
-
-  private def convertColumnNodeToColumn(node: AnyRef): Column = {
-    val columnNodeClass = Class.forName("org.apache.spark.sql.internal.ColumnNode")
-    val constructor = classOf[Column].getConstructor(columnNodeClass)
-    constructor.newInstance(node).asInstanceOf[Column]
-  }
 }

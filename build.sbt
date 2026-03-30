@@ -78,7 +78,13 @@ lazy val commonSettings = Seq(
     "-unchecked",
     "-Xlint"
   ),
-  javaOptions ++= sparkJavaOptions
+  javaOptions ++= sparkJavaOptions,
+  Test / fork := true,
+  Compile / unmanagedSourceDirectories += {
+    val sparkMajor = (ThisBuild / sparkVersion).value.split("\\.").headOption.getOrElse("4")
+    val shimDir = if (sparkMajor == "3") "spark3" else "spark4"
+    baseDirectory.value / "src" / "main" / shimDir
+  }
 )
 
 // Root project (library)

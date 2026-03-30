@@ -26,7 +26,11 @@ import org.apache.spark.unsafe.types.UTF8String
   *   }
   *   }}}
   */
-abstract class StringSimExpression extends BinaryExpression with ImplicitCastInputTypes with Serializable {
+abstract class StringSimExpression
+    extends BinaryExpression
+    with ImplicitCastInputTypes
+    with NullIntolerantCompat
+    with Serializable {
 
   override def dataType: DoubleType = DoubleType
 
@@ -50,10 +54,6 @@ abstract class StringSimExpression extends BinaryExpression with ImplicitCastInp
       TypeCheckSuccess
     }
   }
-
-  /** Indicates that this expression returns null if any input is null.
-    */
-  override def nullIntolerant: Boolean = true
 
   /** Compute similarity between two strings.
     *
