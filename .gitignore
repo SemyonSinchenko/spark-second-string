@@ -1,8 +1,8 @@
 .opencode
 .qwen
 target
-project
 *.metals
+*metals.sbt
 *~
 #*
 *.bloop
