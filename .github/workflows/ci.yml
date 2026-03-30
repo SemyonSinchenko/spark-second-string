@@ -39,7 +39,7 @@ jobs:
     - name: Run Fuzzy Tests
       run: |
         sbt -DsparkVersion=${{ matrix.spark-version }} \
-        fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli \
+        "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli \
         --seed 42 \
         --rows 50000 \
-        --out fuzzy-testing/target/reports/fuzzy-report.md
+        --out fuzzy-testing/target/reports/fuzzy-report.md"
