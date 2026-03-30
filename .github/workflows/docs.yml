@@ -1,0 +1,60 @@
+name: Publish Docs
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      JAVA_OPTS: -Xms2048M -Xmx2048M
+      JVM_OPTS:  -Xms2048M -Xmx2048M
+      SPARK_VERSION: "4.0.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: "zulu"
+          java-version: "17"
+      - uses: sbt/setup-sbt@v1
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: sbt-ivy-cache-docs-${{ hashFiles('build.sbt') }}
+          restore-keys: |
+            sbt-ivy-cache-docs-
+      - name: Run Fuzzy Tests
+        run: |
+          sbt -DsparkVersion=${{ env.SPARK_VERSION }} \
+            fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli \
+            --seed 42 \
+            --rows 50000 \
+            --out fuzzy-testing/target/reports/fuzzy-report.md
+      - name: Run Benchmarks
+        run: ./dev/benchmarks_suite.sh --mode compare-only
+      - name: Generate Docs
+        run: sbt -DsparkVersion=${{ env.SPARK_VERSION }} docs/laikaHTML
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/target/docs/site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
