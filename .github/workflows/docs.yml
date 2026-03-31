@@ -46,7 +46,7 @@ jobs:
             "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli \
             --seed 42 \
             --rows 50000 \
-            --out fuzzy-testing/target/reports/fuzzy-report.md"
+            --out target/reports/fuzzy-report.md"
       - name: Run Benchmarks
         run: ./dev/benchmarks_suite.sh --mode compare-only
       - name: Generate Docs

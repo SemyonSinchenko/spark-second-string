@@ -46,22 +46,7 @@ spark.registerStringSimilarityFunctions()
 spark.sql("SELECT jaro_winkler(left_name, right_name) AS score FROM pairs")
 ```
 
-## Documentation Build Prerequisites
+## Development and Build Commands
 
-Documentation pages for benchmarks and fuzzy-testing consume generated variables from precomputed reports.
-
-Before building docs, run:
-
-```bash
-./dev/benchmarks_suite.sh --mode compare-only
-sbt "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli --seed 42 --rows 100000 --out fuzzy-testing/target/reports/fuzzy-report.md --save-output fuzzy-testing/target/reports/fuzzy-csv"
-```
-
-Then build docs:
-
-```bash
-sbt docs/laikaSite
-```
-
-If prerequisite artifacts are missing, docs build fails with explicit instructions that point to the required command(
-s).
+All contributor-focused commands (build/test, fuzzy testing, benchmarks, docs generation) are documented in
+`CONTRIBUTING.md`.

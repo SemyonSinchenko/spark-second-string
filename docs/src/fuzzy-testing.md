@@ -30,8 +30,8 @@ High >30% counts typically indicate a known algorithmic difference rather than a
 ```bash
 sbt "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli \
   --seed 42 --rows 100000 \
-  --out fuzzy-testing/target/reports/fuzzy-report.md \
-  --save-output fuzzy-testing/target/reports/fuzzy-csv"
+  --out target/reports/fuzzy-report.md \
+  --save-output target/reports/fuzzy-csv"
 ```
 
 Artifact source: ${fuzzy.source_path}

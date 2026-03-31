@@ -48,7 +48,7 @@ Required pre-runs:
 
 ```bash
 ./dev/benchmarks_suite.sh --mode compare-only
-sbt "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli --seed 42 --rows 100000 --out fuzzy-testing/target/reports/fuzzy-report.md --save-output fuzzy-testing/target/reports/fuzzy-csv"
+sbt "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli --seed 42 --rows 100000 --out target/reports/fuzzy-report.md --save-output target/reports/fuzzy-csv"
 ```
 
 Build docs:

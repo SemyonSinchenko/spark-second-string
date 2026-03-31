@@ -42,4 +42,4 @@ jobs:
         "fuzzy-testing/runMain io.github.semyonsinchenko.sparkss.fuzzy.FuzzyTestingCli \
         --seed 42 \
         --rows 50000 \
-        --out fuzzy-testing/target/reports/fuzzy-report.md"
+        --out target/reports/fuzzy-report.md"

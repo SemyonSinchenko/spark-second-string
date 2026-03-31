@@ -60,7 +60,7 @@ abstract class LegacyMatrixUdfBenchmarkBase {
   var scenario: String = _
 
   private var spark: SparkSession = _
-  private var scenarioDataFrames: Map[String, DataFrame] = Map.empty
+  private var scenarioDataFrame: DataFrame = _
 
   protected def udfName: String
   protected def legacyClassName: String
@@ -81,17 +81,17 @@ abstract class LegacyMatrixUdfBenchmarkBase {
 
     val sparkSession = spark
     import sparkSession.implicits._
-    scenarioDataFrames = BenchmarkIdentifiers.MatrixScenarios.map { scenarioId =>
-      val (left, right) = BenchmarkInputData.matrixPairFor(scenarioId)
-      val prepared = Seq.fill(BenchmarkSuiteConfig.RowCount)((left, right)).toDF("left", "right").cache()
-      prepared.count()
-      scenarioId -> prepared
-    }.toMap
+    val (left, right) = BenchmarkInputData.matrixPairFor(scenario)
+    val prepared = Seq.fill(BenchmarkSuiteConfig.RowCount)((left, right)).toDF("left", "right").cache()
+    prepared.count()
+    scenarioDataFrame = prepared
   }
 
   @TearDown(Level.Trial)
   def tearDown(): Unit = {
-    scenarioDataFrames.values.foreach(_.unpersist(blocking = false))
+    if (scenarioDataFrame != null) {
+      scenarioDataFrame.unpersist(blocking = false)
+    }
     if (spark != null) {
       spark.stop()
     }
@@ -102,7 +102,7 @@ abstract class LegacyMatrixUdfBenchmarkBase {
   @Warmup(iterations = 6, time = 1, timeUnit = TimeUnit.SECONDS)
   @Measurement(iterations = 6, time = 1, timeUnit = TimeUnit.SECONDS)
   def legacyUdf(): Double = {
-    val score = scenarioDataFrames(scenario)
+    val score = scenarioDataFrame
       .selectExpr(s"avg($udfName(left, right)) AS score")
       .collect()(0)
 

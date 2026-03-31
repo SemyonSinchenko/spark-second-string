@@ -112,6 +112,7 @@ fi
 NATIVE_INCLUDE="io.github.semyonsinchenko.sparkss.benchmarks.(AffineGapBenchmark\.affineGap|NeedlemanWunschBenchmark\.needlemanWunsch|SmithWatermanBenchmark\.smithWaterman)"
 NATIVE_SPARK_INCLUDE="io.github.semyonsinchenko.sparkss.benchmarks.NativeSpark(AffineGap|NeedlemanWunsch|SmithWaterman|JaroWinkler|MongeElkan)Benchmark"
 LEGACY_INCLUDE="io.github.semyonsinchenko.sparkss.benchmarks.Legacy(AffineGap|NeedlemanWunsch|SmithWaterman|JaroWinkler|MongeElkan)UdfBenchmark"
+COMPARE_ONLY_SCENARIOS="short-low-overlap,medium-medium-overlap,long-high-overlap"
 
 if [[ "$MODE" == "native-only" ]]; then
   clear_or_wait_for_jmh_lock
@@ -128,13 +129,13 @@ else
   clear_or_wait_for_jmh_lock
   run_phase \
     "Native Spark SQL benchmarks" \
-    "sbt \"benchmarks/jmh:run -bm thrpt -wi 6 -w 1s -i 6 -r 1s -f 1 $JMH_VERBOSE -rf json -rff $NATIVE_SPARK_JSON $NATIVE_SPARK_INCLUDE\""
+    "sbt \"benchmarks/jmh:run -bm thrpt -wi 6 -w 1s -i 6 -r 1s -f 1 -p scenario=$COMPARE_ONLY_SCENARIOS $JMH_VERBOSE -rf json -rff $NATIVE_SPARK_JSON $NATIVE_SPARK_INCLUDE\""
   validate_json_has_rows "Native Spark SQL benchmarks" "$NATIVE_SPARK_JSON"
 
   clear_or_wait_for_jmh_lock
   run_phase \
     "Legacy UDF benchmarks" \
-    "sbt \"benchmarks/jmh:run -bm thrpt -wi 6 -w 1s -i 6 -r 1s -f 1 $JMH_VERBOSE -rf json -rff $LEGACY_JSON $LEGACY_INCLUDE\""
+    "sbt \"benchmarks/jmh:run -bm thrpt -wi 6 -w 1s -i 6 -r 1s -f 1 -p scenario=$COMPARE_ONLY_SCENARIOS $JMH_VERBOSE -rf json -rff $LEGACY_JSON $LEGACY_INCLUDE\""
   validate_json_has_rows "Legacy UDF benchmarks" "$LEGACY_JSON"
 
   run_phase \
