@@ -268,8 +268,8 @@ object StringSimilarityFunctions {
     * penalties must be negative values.
     *
     * Migration note for pre-1.0 users:
-     *   - old style: `affineGap(left, right, mismatchPenalty = 1, gapOpenPenalty = 2, gapExtendPenalty = 1)`
-     *   - new style: `affineGap(left, right, mismatchPenalty = -1, gapOpenPenalty = -2, gapExtendPenalty = -1)`
+    *   - old style: `affineGap(left, right, mismatchPenalty = 1, gapOpenPenalty = 2, gapExtendPenalty = 1)`
+    *   - new style: `affineGap(left, right, mismatchPenalty = -1, gapOpenPenalty = -2, gapExtendPenalty = -1)`
     *
     * Positive penalty values are rejected at analysis time with a fail-fast type-check error.
     */
