@@ -21,6 +21,8 @@ private[fuzzy] final case class MetricReport(
 )
 
 private[fuzzy] final case class FuzzyTestingReport(seed: Long, rows: Long, metrics: Seq[MetricReport])
+private[fuzzy] final case class ExcludedMetricReport(metric: String, reason: String)
+private[fuzzy] final case class BaselineMetricConfig(metric: String, tolerance: Double)
 
 private[fuzzy] object FuzzyTestingPipeline {
   private val Epsilon = 1e-9
@@ -100,60 +102,196 @@ private[fuzzy] object FuzzyTestingPipeline {
   private val TotalCaseWeight = GenerationCases.map(_.weight).sum
 
   private type Scaler = (Column, Column, Column) => Column
+  private type InputAdapter = (Column, Column) => (Column, Column)
 
   private final case class MetricSpec(
       metric: String,
       nativeFunction: String,
-      legacyUdfName: String,
-      legacyClassName: String,
+      legacyUdfName: Option[String],
+      legacyClassNames: Seq[String],
       scaler: Scaler,
-      emptyPairScaledValue: Option[Double]
+      emptyPairScaledValue: Option[Double],
+      inputAdapter: InputAdapter,
+      excludedReason: Option[String],
+      tolerance: Double
   )
+
+  private def identityAdapter(left: Column, right: Column): (Column, Column) = (left, right)
 
   private val MetricSpecs = Seq(
     MetricSpec(
       metric = "needleman_wunsch",
       nativeFunction = "needleman_wunsch",
-      legacyUdfName = "legacy_needleman_wunsch",
-      legacyClassName = "com.wcohen.secondstring.NeedlemanWunsch",
+      legacyUdfName = Some("legacy_needleman_wunsch"),
+      legacyClassNames = Seq("com.wcohen.secondstring.NeedlemanWunsch", "com.wcohen.ss.NeedlemanWunsch"),
       scaler = needlemanWunschScaler,
-      emptyPairScaledValue = Some(1.0)
+      emptyPairScaledValue = Some(1.0),
+      inputAdapter = identityAdapter,
+      excludedReason = None,
+      tolerance = 1e-12
     ),
     MetricSpec(
       metric = "smith_waterman",
       nativeFunction = "smith_waterman",
-      legacyUdfName = "legacy_smith_waterman",
-      legacyClassName = "com.wcohen.secondstring.SmithWaterman",
+      legacyUdfName = Some("legacy_smith_waterman"),
+      legacyClassNames = Seq("com.wcohen.secondstring.SmithWaterman", "com.wcohen.ss.SmithWaterman"),
       scaler = smithWatermanScaler,
-      emptyPairScaledValue = Some(1.0)
+      emptyPairScaledValue = Some(1.0),
+      inputAdapter = identityAdapter,
+      excludedReason = None,
+      tolerance = 1e-12
     ),
     MetricSpec(
       metric = "jaro_winkler",
       nativeFunction = "jaro_winkler",
-      legacyUdfName = "legacy_jaro_winkler",
-      legacyClassName = "com.wcohen.secondstring.JaroWinkler",
+      legacyUdfName = Some("legacy_jaro_winkler"),
+      legacyClassNames = Seq("com.wcohen.secondstring.JaroWinkler", "com.wcohen.ss.JaroWinkler"),
       scaler = identityScaler,
-      emptyPairScaledValue = Some(1.0)
+      emptyPairScaledValue = Some(1.0),
+      inputAdapter = identityAdapter,
+      excludedReason = None,
+      tolerance = 0.03
     ),
     MetricSpec(
       metric = "monge_elkan",
       nativeFunction = "monge_elkan",
-      legacyUdfName = "legacy_monge_elkan",
-      legacyClassName = "com.wcohen.secondstring.MongeElkan",
+      legacyUdfName = Some("legacy_monge_elkan"),
+      legacyClassNames = Seq("com.wcohen.secondstring.MongeElkan", "com.wcohen.ss.MongeElkan"),
       scaler = identityScaler,
-      emptyPairScaledValue = Some(1.0)
+      emptyPairScaledValue = Some(1.0),
+      inputAdapter = identityAdapter,
+      excludedReason = None,
+      tolerance = 0.15
+    ),
+    MetricSpec(
+      metric = "jaro",
+      nativeFunction = "jaro",
+      legacyUdfName = Some("legacy_jaro"),
+      legacyClassNames = Seq("com.wcohen.secondstring.Jaro", "com.wcohen.ss.Jaro"),
+      scaler = identityScaler,
+      emptyPairScaledValue = Some(1.0),
+      inputAdapter = identityAdapter,
+      excludedReason = None,
+      tolerance = 0.03
+    ),
+    MetricSpec(
+      metric = "levenshtein",
+      nativeFunction = "levenshtein",
+      legacyUdfName = None,
+      legacyClassNames = Nil,
+      scaler = identityScaler,
+      emptyPairScaledValue = None,
+      inputAdapter = identityAdapter,
+      excludedReason = Some("SecondString Levenstein score semantics do not match normalized native Levenshtein similarity."),
+      tolerance = 1e-12
+    ),
+    MetricSpec(
+      metric = "jaccard",
+      nativeFunction = "jaccard",
+      legacyUdfName = Some("legacy_jaccard"),
+      legacyClassNames = Seq("com.wcohen.secondstring.Jaccard", "com.wcohen.ss.Jaccard"),
+      scaler = identityScaler,
+      emptyPairScaledValue = Some(1.0),
+      inputAdapter = identityAdapter,
+      excludedReason = None,
+      tolerance = 1e-12
+    ),
+    MetricSpec(
+      metric = "sorensen_dice",
+      nativeFunction = "sorensen_dice",
+      legacyUdfName = None,
+      legacyClassNames = Nil,
+      scaler = identityScaler,
+      emptyPairScaledValue = None,
+      inputAdapter = identityAdapter,
+      excludedReason = Some("SecondString has no equivalent Sorensen-Dice implementation."),
+      tolerance = 1e-12
+    ),
+    MetricSpec(
+      metric = "overlap_coefficient",
+      nativeFunction = "overlap_coefficient",
+      legacyUdfName = None,
+      legacyClassNames = Nil,
+      scaler = identityScaler,
+      emptyPairScaledValue = None,
+      inputAdapter = identityAdapter,
+      excludedReason = Some("SecondString has no overlap coefficient implementation."),
+      tolerance = 1e-12
+    ),
+    MetricSpec(
+      metric = "cosine",
+      nativeFunction = "cosine",
+      legacyUdfName = None,
+      legacyClassNames = Nil,
+      scaler = identityScaler,
+      emptyPairScaledValue = None,
+      inputAdapter = identityAdapter,
+      excludedReason = Some("SecondString has no token cosine similarity implementation."),
+      tolerance = 1e-12
+    ),
+    MetricSpec(
+      metric = "braun_blanquet",
+      nativeFunction = "braun_blanquet",
+      legacyUdfName = None,
+      legacyClassNames = Nil,
+      scaler = identityScaler,
+      emptyPairScaledValue = None,
+      inputAdapter = identityAdapter,
+      excludedReason = Some("SecondString has no Braun-Blanquet coefficient implementation."),
+      tolerance = 1e-12
+    ),
+    MetricSpec(
+      metric = "lcs_similarity",
+      nativeFunction = "lcs_similarity",
+      legacyUdfName = None,
+      legacyClassNames = Nil,
+      scaler = identityScaler,
+      emptyPairScaledValue = None,
+      inputAdapter = identityAdapter,
+      excludedReason = Some("SecondString does not provide an LCS similarity baseline with matching semantics."),
+      tolerance = 1e-12
+    ),
+    MetricSpec(
+      metric = "affine_gap",
+      nativeFunction = "affine_gap",
+      legacyUdfName = None,
+      legacyClassNames = Nil,
+      scaler = identityScaler,
+      emptyPairScaledValue = None,
+      inputAdapter = identityAdapter,
+      excludedReason = Some("SecondString AffineGap semantics diverge from native affine-gap edit distance."),
+      tolerance = 1e-12
     )
   )
 
   private val MetricSpecByName = MetricSpecs.map(spec => spec.metric -> spec).toMap
 
+  private[fuzzy] def baselineEligibleMetricConfigs: Seq[BaselineMetricConfig] = {
+    MetricSpecs
+      .filter(_.excludedReason.isEmpty)
+      .map(spec => BaselineMetricConfig(spec.metric, spec.tolerance))
+  }
+
+  private[fuzzy] def excludedBaselineMetrics: Seq[ExcludedMetricReport] = {
+    MetricSpecs.flatMap(spec => spec.excludedReason.map(reason => ExcludedMetricReport(spec.metric, reason)))
+  }
+
+  private[fuzzy] def registerLegacyBaselines(spark: SparkSession): Unit = {
+    val eligibleSpecs = MetricSpecs.filter(_.excludedReason.isEmpty)
+    LegacySecondStringUdfs.registerAll(
+      spark,
+      eligibleSpecs.flatMap(spec => spec.legacyUdfName.map(udf => udf -> spec.legacyClassNames))
+    )
+  }
+
   def run(spark: SparkSession, seed: Long, rows: Long, saveOutputDir: Option[String] = None): FuzzyTestingReport = {
-    LegacySecondStringUdfs.registerAll(spark, MetricSpecs.map(spec => spec.legacyUdfName -> spec.legacyClassName))
+    val eligibleSpecs = MetricSpecs.filter(_.excludedReason.isEmpty)
+    registerLegacyBaselines(spark)
     val generated = generateInputData(spark, seed, rows).cache()
     generated.count()
 
     try {
-      val metrics = MetricSpecs.map { spec =>
+      val metrics = eligibleSpecs.map { spec =>
         val scored = scoreMetric(generated, spec).cache()
         val totalRowCount = scored.count()
         try {
@@ -431,12 +569,17 @@ private[fuzzy] object FuzzyTestingPipeline {
   }
 
   private def scoreMetric(input: DataFrame, spec: MetricSpec): DataFrame = {
+    val (adaptedLeft, adaptedRight) = spec.inputAdapter(col("left_raw"), col("right_raw"))
     input
       .selectExpr(
-        "left AS input_left",
-        "right AS input_right",
-        s"${spec.nativeFunction}(left, right) AS native_score",
-        s"${spec.legacyUdfName}(left, right) AS second_string_raw"
+        "left AS left_raw",
+        "right AS right_raw"
+      )
+      .select(
+        adaptedLeft.as("input_left"),
+        adaptedRight.as("input_right"),
+        expr(s"${spec.nativeFunction}(input_left, input_right)").as("native_score"),
+        expr(s"${spec.legacyUdfName.get}(input_left, input_right)").as("second_string_raw")
       )
       .withColumn(
         "second_string_scaled",
@@ -581,9 +724,24 @@ private[fuzzy] object LegacySecondStringUdfs {
     }
   }
 
-  def registerAll(spark: SparkSession, udfToLegacyClass: Seq[(String, String)]): Unit = {
-    udfToLegacyClass.foreach { case (udfName, legacyClassName) =>
-      spark.udf.register(udfName, LegacyScorer(legacyClassName))
+  def registerAll(spark: SparkSession, udfToLegacyClass: Seq[(String, Seq[String])]): Unit = {
+    udfToLegacyClass.foreach { case (udfName, legacyClassNames) =>
+      spark.udf.register(udfName, LegacyScorer(resolveLegacyClass(legacyClassNames)))
+    }
+  }
+
+  private def resolveLegacyClass(candidates: Seq[String]): String = {
+    candidates.find { className =>
+      try {
+        Class.forName(className)
+        true
+      } catch {
+        case _: ClassNotFoundException => false
+      }
+    }.getOrElse {
+      throw new IllegalStateException(
+        s"No compatible legacy class found. Tried: ${candidates.mkString(", ")}"
+      )
     }
   }
 }

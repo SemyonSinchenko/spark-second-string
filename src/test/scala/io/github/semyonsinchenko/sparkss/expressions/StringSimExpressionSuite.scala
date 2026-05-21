@@ -409,7 +409,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     ).toDF("left", "right")
 
     val scores = frame
-      .select(StringSimilarityFunctions.affine_gap(col("left"), col("right")).as("score"))
+      .select(StringSimilarityFunctions.affineGap(col("left"), col("right")).as("score"))
       .collect()
       .map(_.get(0))
 
@@ -486,7 +486,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     ).toDF("left", "right")
 
     val scores = frame
-      .select(StringSimilarityFunctions.monge_elkan(col("left"), col("right")).as("score"))
+      .select(StringSimilarityFunctions.mongeElkan(col("left"), col("right")).as("score"))
       .collect()
       .map(_.get(0))
 
@@ -598,7 +598,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     val score = frame
       .select(
         StringSimilarityFunctions
-          .affine_gap(trim(col("a")), trim(col("b")))
+          .affineGap(trim(col("a")), trim(col("b")))
           .as("affine_gap")
       )
       .head()
@@ -638,7 +638,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     val score = frame
       .select(
         StringSimilarityFunctions
-          .monge_elkan(concat_ws(" ", col("prefix"), lit("beta")), trim(col("target")))
+          .mongeElkan(concat_ws(" ", col("prefix"), lit("beta")), trim(col("target")))
           .as("score")
       )
       .head()
@@ -767,8 +767,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       ("x", null.asInstanceOf[String])
     ).toDF("left", "right")
 
-    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.affine_gap, enabled = true)
-    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.affine_gap, enabled = false)
+    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.affineGap, enabled = true)
+    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.affineGap, enabled = false)
 
     assert(generated == interpreted)
   }
@@ -829,7 +829,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       frame
         .select(
           StringSimilarityFunctions
-            .affine_gap(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .affineGap(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
             .as("score")
         )
         .collect()
@@ -842,7 +842,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       frame
         .select(
           StringSimilarityFunctions
-            .affine_gap(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .affineGap(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
             .as("score")
         )
         .collect()
@@ -931,7 +931,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       ("spark", "spork"),
       ("", "x")
     ).toDF("left", "right")
-      .select(StringSimilarityFunctions.affine_gap(col("left"), col("right")).as("score"))
+      .select(StringSimilarityFunctions.affineGap(col("left"), col("right")).as("score"))
       .collect()
 
     assert(rows(0).getDouble(0) >= 0.0)
@@ -977,8 +977,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       ("x", null.asInstanceOf[String])
     ).toDF("left", "right")
 
-    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.monge_elkan, enabled = true)
-    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.monge_elkan, enabled = false)
+    val generated = evaluateWithCodegen(frame, StringSimilarityFunctions.mongeElkan, enabled = true)
+    val interpreted = evaluateWithCodegen(frame, StringSimilarityFunctions.mongeElkan, enabled = false)
 
     assert(generated == interpreted)
   }
@@ -999,7 +999,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       frame
         .select(
           StringSimilarityFunctions
-            .monge_elkan(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .mongeElkan(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
             .as("score")
         )
         .collect()
@@ -1012,7 +1012,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       frame
         .select(
           StringSimilarityFunctions
-            .monge_elkan(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
+            .mongeElkan(trim(concat_ws("", lit(""), col("left"))), trim(col("right")))
             .as("score")
         )
         .collect()
@@ -1033,7 +1033,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       ("alpha beta", "alpha beta"),
       ("alpha", "omega")
     ).toDF("left", "right")
-      .select(StringSimilarityFunctions.monge_elkan(col("left"), col("right")).as("score"))
+      .select(StringSimilarityFunctions.mongeElkan(col("left"), col("right")).as("score"))
       .collect()
 
     assertClose(rows(0).getDouble(0), 1.0)
@@ -1148,7 +1148,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     val frame = Seq(("spark", "spork")).toDF("left", "right")
 
     val dslScore = frame
-      .select(StringSimilarityFunctions.affine_gap("left", "right").as("score"))
+      .select(StringSimilarityFunctions.affineGap("left", "right").as("score"))
       .head()
       .getDouble(0)
 
@@ -1216,7 +1216,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     val frame = Seq(("alpha beta", "alpha gamma")).toDF("left", "right")
 
     val dslScore = frame
-      .select(StringSimilarityFunctions.monge_elkan("left", "right").as("score"))
+      .select(StringSimilarityFunctions.mongeElkan("left", "right").as("score"))
       .head()
       .getDouble(0)
 
@@ -1249,7 +1249,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       ),
       "cosine" -> ((left: Column, right: Column) => StringSimilarityFunctions.cosine(left, right)),
       "braun_blanquet" -> ((left: Column, right: Column) => StringSimilarityFunctions.braunBlanquet(left, right)),
-      "monge_elkan" -> ((left: Column, right: Column) => StringSimilarityFunctions.monge_elkan(left, right))
+      "monge_elkan" -> ((left: Column, right: Column) => StringSimilarityFunctions.mongeElkan(left, right))
     )
     val matrixMetrics = Seq(
       "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right)),
@@ -1258,7 +1258,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "jaro_winkler" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right)),
       "needleman_wunsch" -> ((left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right)),
       "smith_waterman" -> ((left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right)),
-      "affine_gap" -> ((left: Column, right: Column) => StringSimilarityFunctions.affine_gap(left, right))
+      "affine_gap" -> ((left: Column, right: Column) => StringSimilarityFunctions.affineGap(left, right))
     )
 
     (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
@@ -1288,7 +1288,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       ),
       "cosine" -> ((left: Column, right: Column) => StringSimilarityFunctions.cosine(left, right)),
       "braun_blanquet" -> ((left: Column, right: Column) => StringSimilarityFunctions.braunBlanquet(left, right)),
-      "monge_elkan" -> ((left: Column, right: Column) => StringSimilarityFunctions.monge_elkan(left, right))
+      "monge_elkan" -> ((left: Column, right: Column) => StringSimilarityFunctions.mongeElkan(left, right))
     )
     val matrixMetrics = Seq(
       "levenshtein" -> ((left: Column, right: Column) => StringSimilarityFunctions.levenshtein(left, right)),
@@ -1297,7 +1297,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       "jaro_winkler" -> ((left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right)),
       "needleman_wunsch" -> ((left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right)),
       "smith_waterman" -> ((left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right)),
-      "affine_gap" -> ((left: Column, right: Column) => StringSimilarityFunctions.affine_gap(left, right))
+      "affine_gap" -> ((left: Column, right: Column) => StringSimilarityFunctions.affineGap(left, right))
     )
 
     (tokenMetrics ++ matrixMetrics).foreach { case (name, metric) =>
@@ -1334,6 +1334,9 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
         spark.sql(s"SELECT $metric('x') AS score").collect()
       }
     }
+
+    assert(spark.sql("SHOW FUNCTIONS LIKE 'mongeElkan'").collect().isEmpty)
+    assert(spark.sql("SHOW FUNCTIONS LIKE 'affineGap'").collect().isEmpty)
   }
 
   test("matrix metric family keeps boundary and normalization contracts") {
@@ -1357,7 +1360,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
       (left: Column, right: Column) => StringSimilarityFunctions.jaroWinkler(left, right),
       (left: Column, right: Column) => StringSimilarityFunctions.needlemanWunsch(left, right),
       (left: Column, right: Column) => StringSimilarityFunctions.smithWaterman(left, right),
-      (left: Column, right: Column) => StringSimilarityFunctions.affine_gap(left, right)
+      (left: Column, right: Column) => StringSimilarityFunctions.affineGap(left, right)
     )
 
     matrixMetrics.foreach { metric =>

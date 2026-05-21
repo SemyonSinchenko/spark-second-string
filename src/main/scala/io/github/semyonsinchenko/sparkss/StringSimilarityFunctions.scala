@@ -110,38 +110,38 @@ object StringSimilarityFunctions {
     braunBlanquet(col(left), col(right), ngramSize)
   }
 
-  def monge_elkan(left: Column, right: Column): Column = {
-    monge_elkan(left, right, MongeElkan.DefaultInnerMetric, 0)
+  def mongeElkan(left: Column, right: Column): Column = {
+    mongeElkan(left, right, MongeElkan.DefaultInnerMetric, 0)
   }
 
-  def monge_elkan(left: Column, right: Column, ngramSize: Int): Column = {
-    monge_elkan(left, right, MongeElkan.DefaultInnerMetric, ngramSize)
+  def mongeElkan(left: Column, right: Column, ngramSize: Int): Column = {
+    mongeElkan(left, right, MongeElkan.DefaultInnerMetric, ngramSize)
   }
 
-  def monge_elkan(left: Column, right: Column, innerMetric: String): Column = {
-    monge_elkan(left, right, innerMetric, 0)
+  def mongeElkan(left: Column, right: Column, innerMetric: String): Column = {
+    mongeElkan(left, right, innerMetric, 0)
   }
 
-  def monge_elkan(left: Column, right: Column, innerMetric: String, ngramSize: Int): Column = {
+  def mongeElkan(left: Column, right: Column, innerMetric: String, ngramSize: Int): Column = {
     val leftExpr = SparkColumnInterop.toExpression(left)
     val rightExpr = SparkColumnInterop.toExpression(right)
     SparkColumnInterop.fromExpression(MongeElkan(leftExpr, rightExpr, innerMetric, ngramSize))
   }
 
-  def monge_elkan(left: String, right: String): Column = {
-    monge_elkan(col(left), col(right))
+  def mongeElkan(left: String, right: String): Column = {
+    mongeElkan(col(left), col(right))
   }
 
-  def monge_elkan(left: String, right: String, ngramSize: Int): Column = {
-    monge_elkan(col(left), col(right), ngramSize)
+  def mongeElkan(left: String, right: String, ngramSize: Int): Column = {
+    mongeElkan(col(left), col(right), ngramSize)
   }
 
-  def monge_elkan(left: String, right: String, innerMetric: String): Column = {
-    monge_elkan(col(left), col(right), innerMetric)
+  def mongeElkan(left: String, right: String, innerMetric: String): Column = {
+    mongeElkan(col(left), col(right), innerMetric)
   }
 
-  def monge_elkan(left: String, right: String, innerMetric: String, ngramSize: Int): Column = {
-    monge_elkan(col(left), col(right), innerMetric, ngramSize)
+  def mongeElkan(left: String, right: String, innerMetric: String, ngramSize: Int): Column = {
+    mongeElkan(col(left), col(right), innerMetric, ngramSize)
   }
 
   def levenshtein(left: Column, right: Column): Column = {
@@ -252,8 +252,8 @@ object StringSimilarityFunctions {
     smithWaterman(col(left), col(right), matchScore, mismatchPenalty, gapPenalty)
   }
 
-  def affine_gap(left: Column, right: Column): Column = {
-    affine_gap(
+  def affineGap(left: Column, right: Column): Column = {
+    affineGap(
       left,
       right,
       AffineGap.DefaultMismatchPenalty,
@@ -268,12 +268,12 @@ object StringSimilarityFunctions {
     * penalties must be negative values.
     *
     * Migration note for pre-1.0 users:
-    *   - old style: `affine_gap(left, right, mismatchPenalty = 1, gapOpenPenalty = 2, gapExtendPenalty = 1)`
-    *   - new style: `affine_gap(left, right, mismatchPenalty = -1, gapOpenPenalty = -2, gapExtendPenalty = -1)`
+     *   - old style: `affineGap(left, right, mismatchPenalty = 1, gapOpenPenalty = 2, gapExtendPenalty = 1)`
+     *   - new style: `affineGap(left, right, mismatchPenalty = -1, gapOpenPenalty = -2, gapExtendPenalty = -1)`
     *
     * Positive penalty values are rejected at analysis time with a fail-fast type-check error.
     */
-  def affine_gap(
+  def affineGap(
       left: Column,
       right: Column,
       mismatchPenalty: Int,
@@ -285,18 +285,18 @@ object StringSimilarityFunctions {
     SparkColumnInterop.fromExpression(AffineGap(leftExpr, rightExpr, mismatchPenalty, gapOpenPenalty, gapExtendPenalty))
   }
 
-  def affine_gap(left: String, right: String): Column = {
-    affine_gap(col(left), col(right))
+  def affineGap(left: String, right: String): Column = {
+    affineGap(col(left), col(right))
   }
 
-  def affine_gap(
+  def affineGap(
       left: String,
       right: String,
       mismatchPenalty: Int,
       gapOpenPenalty: Int,
       gapExtendPenalty: Int
   ): Column = {
-    affine_gap(col(left), col(right), mismatchPenalty, gapOpenPenalty, gapExtendPenalty)
+    affineGap(col(left), col(right), mismatchPenalty, gapOpenPenalty, gapExtendPenalty)
   }
 
   def soundex(input: Column): Column = {

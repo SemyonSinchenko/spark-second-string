@@ -7,6 +7,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import java.nio.file.{Files, Path}
 import scala.jdk.CollectionConverters._
+import scala.math.abs
 
 class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
   private var spark: SparkSession = _
@@ -139,10 +140,10 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     LegacySecondStringUdfs.registerAll(
       spark,
       Seq(
-        "legacy_needleman_wunsch" -> "com.wcohen.secondstring.NeedlemanWunsch",
-        "legacy_smith_waterman" -> "com.wcohen.secondstring.SmithWaterman",
-        "legacy_jaro_winkler" -> "com.wcohen.secondstring.JaroWinkler",
-        "legacy_monge_elkan" -> "com.wcohen.secondstring.MongeElkan"
+        "legacy_needleman_wunsch" -> Seq("com.wcohen.ss.NeedlemanWunsch", "com.wcohen.secondstring.NeedlemanWunsch"),
+        "legacy_smith_waterman" -> Seq("com.wcohen.ss.SmithWaterman", "com.wcohen.secondstring.SmithWaterman"),
+        "legacy_jaro_winkler" -> Seq("com.wcohen.ss.JaroWinkler", "com.wcohen.secondstring.JaroWinkler"),
+        "legacy_monge_elkan" -> Seq("com.wcohen.ss.MongeElkan", "com.wcohen.secondstring.MongeElkan")
       )
     )
 
@@ -225,10 +226,10 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     LegacySecondStringUdfs.registerAll(
       spark,
       Seq(
-        "legacy_needleman_wunsch" -> "com.wcohen.secondstring.NeedlemanWunsch",
-        "legacy_smith_waterman" -> "com.wcohen.secondstring.SmithWaterman",
-        "legacy_jaro_winkler" -> "com.wcohen.secondstring.JaroWinkler",
-        "legacy_monge_elkan" -> "com.wcohen.secondstring.MongeElkan"
+        "legacy_needleman_wunsch" -> Seq("com.wcohen.ss.NeedlemanWunsch", "com.wcohen.secondstring.NeedlemanWunsch"),
+        "legacy_smith_waterman" -> Seq("com.wcohen.ss.SmithWaterman", "com.wcohen.secondstring.SmithWaterman"),
+        "legacy_jaro_winkler" -> Seq("com.wcohen.ss.JaroWinkler", "com.wcohen.secondstring.JaroWinkler"),
+        "legacy_monge_elkan" -> Seq("com.wcohen.ss.MongeElkan", "com.wcohen.secondstring.MongeElkan")
       )
     )
 
@@ -274,6 +275,58 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(markdown.contains("## Metric: smith_waterman"))
     assert(markdown.contains("Excluded NULL scaled rows: 2"))
     assert(markdown.contains("ALL | 10 | 2 | - | -"))
+    assert(markdown.contains("## Excluded Baseline Metrics"))
+    assert(markdown.contains("affine_gap | SecondString AffineGap semantics diverge from native affine-gap edit distance."))
+  }
+
+  test("baseline mismatches include metric case id expected and actual values") {
+    val sparkSession = spark
+    import sparkSession.implicits._
+    FuzzyTestingPipeline.registerLegacyBaselines(spark)
+
+    val fixtures = Seq(
+      ("exact", "spark", "spark"),
+      ("similar", "kitten", "sitting"),
+      ("tokens", "foo bar baz", "foo qux baz"),
+      ("empty-left", "", "alpha")
+    )
+
+    val mismatches = FuzzyTestingPipeline.baselineEligibleMetricConfigs.flatMap { metricCfg =>
+      fixtures.flatMap { case (caseId, left, right) =>
+        val row = FuzzyTestingPipeline
+          .scoredDataFrameForMetric(Seq((left, right)).toDF("left", "right"), metricCfg.metric)
+          .head()
+
+        if (row.isNullAt(row.fieldIndex("second_string_scaled"))) {
+          None
+        } else {
+          val expected = row.getAs[Double]("second_string_scaled")
+          val actual = row.getAs[Double]("native_score")
+          val delta = abs(actual - expected)
+          if (delta > metricCfg.tolerance) {
+            Some(
+              s"metric=${metricCfg.metric}, case_id=$caseId, expected=$expected, actual=$actual, tolerance=${metricCfg.tolerance}"
+            )
+          } else {
+            None
+          }
+        }
+      }
+    }
+
+    assert(mismatches.isEmpty, mismatches.mkString("\n"))
+  }
+
+  test("excluded baseline metrics are explicit and justified") {
+    val excluded = FuzzyTestingPipeline.excludedBaselineMetrics.map(metric => metric.metric -> metric.reason).toMap
+    assert(excluded.contains("sorensen_dice"))
+    assert(excluded.contains("overlap_coefficient"))
+    assert(excluded.contains("cosine"))
+    assert(excluded.contains("braun_blanquet"))
+    assert(excluded.contains("levenshtein"))
+    assert(excluded.contains("lcs_similarity"))
+    assert(excluded.contains("affine_gap"))
+    assert(excluded.values.forall(_.nonEmpty))
   }
 
   test("pipeline run is deterministic and returns all expected metrics without gating") {
@@ -281,7 +334,16 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     val second = FuzzyTestingPipeline.run(spark, seed = 42L, rows = 20L)
 
     val metricNames = first.metrics.map(_.metric).toSet
-    assert(metricNames == Set("needleman_wunsch", "smith_waterman", "jaro_winkler", "monge_elkan"))
+    assert(
+      metricNames == Set(
+        "needleman_wunsch",
+        "smith_waterman",
+        "jaro_winkler",
+        "monge_elkan",
+        "jaro",
+        "jaccard"
+      )
+    )
     assert(first.seed == second.seed)
     assert(first.rows == second.rows)
     assert(first.metrics.size == second.metrics.size)
@@ -300,7 +362,7 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     try {
       FuzzyTestingPipeline.run(spark, seed = 42L, rows = 10L, saveOutputDir = Some(outputDir.toString))
 
-      val metrics = Seq("needleman_wunsch", "smith_waterman", "jaro_winkler", "monge_elkan")
+      val metrics = Seq("needleman_wunsch", "smith_waterman", "jaro_winkler", "monge_elkan", "jaro", "jaccard")
       metrics.foreach { metric =>
         val metricDir = outputDir.resolve(metric)
         assert(Files.isDirectory(metricDir), s"missing metric directory: $metricDir")

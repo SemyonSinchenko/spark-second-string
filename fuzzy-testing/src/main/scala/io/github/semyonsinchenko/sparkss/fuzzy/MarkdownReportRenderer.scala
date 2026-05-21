@@ -105,6 +105,17 @@ private[fuzzy] object MarkdownReportRenderer {
       )
     }
 
+    val excluded = FuzzyTestingPipeline.excludedBaselineMetrics
+    if (excluded.nonEmpty) {
+      builder.append("\n")
+      builder.append("## Excluded Baseline Metrics\n\n")
+      builder.append("metric | reason\n")
+      builder.append("---|---\n")
+      excluded.foreach { metric =>
+        builder.append(s"${metric.metric} | ${metric.reason}\n")
+      }
+    }
+
     builder.toString()
   }
 

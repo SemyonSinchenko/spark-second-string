@@ -4,6 +4,9 @@ All similarity metrics return a `Double` in the range **\[0.0, 1.0\]** where 1.0
 completely different. Phonetic encoders return a `String` encoding. Every metric is available through both the DataFrame
 DSL (`StringSimilarityFunctions`) and Spark SQL (`StringSimilaritySparkSessionExtensions`).
 
+> Migration note: Scala/Java DSL helpers were renamed from `monge_elkan` to `mongeElkan` and from `affine_gap` to
+> `affineGap`. SQL function names remain `monge_elkan` and `affine_gap`.
+
 ## Token-based metrics
 
 Token metrics split input strings into token sets and measure set overlap. By default tokens are whitespace-separated
@@ -77,7 +80,7 @@ using a character-level inner metric, and the scores are averaged symmetrically 
 
 |            |                                                                                                                                                                  |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DSL        | `monge_elkan(left, right)` / `monge_elkan(left, right, innerMetric)` / `monge_elkan(left, right, innerMetric, ngramSize)`                                        |
+| DSL        | `mongeElkan(left, right)` / `mongeElkan(left, right, innerMetric)` / `mongeElkan(left, right, innerMetric, ngramSize)`                                        |
 | SQL        | `monge_elkan(left, right)`                                                                                                                                       |
 | Parameters | `innerMetric: String` (default `"jaro_winkler"`, also accepts `"jaro"`, `"levenshtein"`, `"needleman_wunsch"`, `"smith_waterman"`), `ngramSize: Int` (default 0) |
 
@@ -171,7 +174,7 @@ real-world string variations where insertions and deletions tend to cluster.
 
 |            |                                                                                                                           |
 |------------|---------------------------------------------------------------------------------------------------------------------------|
-| DSL        | `affine_gap(left, right)` / `affine_gap(left, right, mismatchPenalty, gapOpenPenalty, gapExtendPenalty)`                  |
+| DSL        | `affineGap(left, right)` / `affineGap(left, right, mismatchPenalty, gapOpenPenalty, gapExtendPenalty)`                  |
 | SQL        | `affine_gap(left, right)`                                                                                                 |
 | Parameters | `mismatchPenalty: Int` (default -1, <0), `gapOpenPenalty: Int` (default -2, <0), `gapExtendPenalty: Int` (default -1, <0) |
 
