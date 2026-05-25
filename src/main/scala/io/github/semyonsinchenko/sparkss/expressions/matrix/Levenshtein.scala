@@ -5,7 +5,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class Levenshtein(left: Expression, right: Expression) extends MatrixMetricExpression {
+private[sparkss] case class Levenshtein(left: Expression, right: Expression) extends MatrixMetricExpression {
 
   private final val LevenshteinModule = "io.github.semyonsinchenko.sparkss.expressions.matrix.Levenshtein$.MODULE$"
 

@@ -45,7 +45,7 @@ object StringSimilaritySparkSessionExtensions {
   private def registerJaccard(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[Jaccard].getName, "ss_jaccard")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => Jaccard(left, right)
+      case Seq(left, right) => Jaccard(left, right, 0)
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_jaccard expects 2 arguments, found ${args.size}"
@@ -62,7 +62,7 @@ object StringSimilaritySparkSessionExtensions {
   private def registerSorensenDice(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[SorensenDice].getName, "ss_sorensen_dice")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => SorensenDice(left, right)
+      case Seq(left, right) => SorensenDice(left, right, 0)
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_sorensen_dice expects 2 arguments, found ${args.size}"
@@ -79,7 +79,7 @@ object StringSimilaritySparkSessionExtensions {
   private def registerOverlapCoefficient(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[OverlapCoefficient].getName, "ss_overlap_coefficient")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => OverlapCoefficient(left, right)
+      case Seq(left, right) => OverlapCoefficient(left, right, 0)
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_overlap_coefficient expects 2 arguments, found ${args.size}"
@@ -96,7 +96,7 @@ object StringSimilaritySparkSessionExtensions {
   private def registerCosine(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[Cosine].getName, "ss_cosine")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => Cosine(left, right)
+      case Seq(left, right) => Cosine(left, right, 0)
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_cosine expects 2 arguments, found ${args.size}"
@@ -113,7 +113,7 @@ object StringSimilaritySparkSessionExtensions {
   private def registerBraunBlanquet(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[BraunBlanquet].getName, "ss_braun_blanquet")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => BraunBlanquet(left, right)
+      case Seq(left, right) => BraunBlanquet(left, right, 0)
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_braun_blanquet expects 2 arguments, found ${args.size}"
@@ -130,7 +130,7 @@ object StringSimilaritySparkSessionExtensions {
   private def registerMongeElkan(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[MongeElkan].getName, "ss_monge_elkan")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => MongeElkan(left, right)
+      case Seq(left, right) => MongeElkan(left, right, MongeElkan.DefaultInnerMetric, 0)
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_monge_elkan expects 2 arguments, found ${args.size}"
@@ -198,7 +198,7 @@ object StringSimilaritySparkSessionExtensions {
   private def registerJaroWinkler(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[JaroWinkler].getName, "ss_jaro_winkler")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => JaroWinkler(left, right)
+      case Seq(left, right) => JaroWinkler(left, right, JaroWinkler.DefaultPrefixScale, JaroWinkler.DefaultPrefixCap)
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_jaro_winkler expects 2 arguments, found ${args.size}"
@@ -215,7 +215,13 @@ object StringSimilaritySparkSessionExtensions {
   private def registerNeedlemanWunsch(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[NeedlemanWunsch].getName, "ss_needleman_wunsch")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => NeedlemanWunsch(left, right)
+      case Seq(left, right) => NeedlemanWunsch(
+          left,
+          right,
+          NeedlemanWunsch.DefaultMatchScore,
+          NeedlemanWunsch.DefaultMismatchPenalty,
+          NeedlemanWunsch.DefaultGapPenalty
+        )
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_needleman_wunsch expects 2 arguments, found ${args.size}"
@@ -232,7 +238,13 @@ object StringSimilaritySparkSessionExtensions {
   private def registerSmithWaterman(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[SmithWaterman].getName, "ss_smith_waterman")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => SmithWaterman(left, right)
+      case Seq(left, right) => SmithWaterman(
+          left,
+          right,
+          SmithWaterman.DefaultMatchScore,
+          SmithWaterman.DefaultMismatchPenalty,
+          SmithWaterman.DefaultGapPenalty
+        )
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_smith_waterman expects 2 arguments, found ${args.size}"
@@ -249,7 +261,13 @@ object StringSimilaritySparkSessionExtensions {
   private def registerAffineGap(spark: SparkSession): Unit = {
     val expressionInfo = new ExpressionInfo(classOf[AffineGap].getName, "ss_affine_gap")
     val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => AffineGap(left, right)
+      case Seq(left, right) => AffineGap(
+          left,
+          right,
+          AffineGap.DefaultMismatchPenalty,
+          AffineGap.DefaultGapOpenPenalty,
+          AffineGap.DefaultGapExtendPenalty
+        )
       case args =>
         throw new IllegalArgumentException(
           s"Function ss_affine_gap expects 2 arguments, found ${args.size}"

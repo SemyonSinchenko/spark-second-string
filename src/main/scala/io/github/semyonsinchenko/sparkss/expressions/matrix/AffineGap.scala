@@ -7,12 +7,12 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class AffineGap(
+private[sparkss] case class AffineGap(
     left: Expression,
     right: Expression,
-    mismatchPenalty: Int = AffineGap.DefaultMismatchPenalty,
-    gapOpenPenalty: Int = AffineGap.DefaultGapOpenPenalty,
-    gapExtendPenalty: Int = AffineGap.DefaultGapExtendPenalty
+    mismatchPenalty: Int,
+    gapOpenPenalty: Int,
+    gapExtendPenalty: Int
 ) extends MatrixMetricExpression {
 
   private final val AffineGapModule = "io.github.semyonsinchenko.sparkss.expressions.matrix.AffineGap$.MODULE$"

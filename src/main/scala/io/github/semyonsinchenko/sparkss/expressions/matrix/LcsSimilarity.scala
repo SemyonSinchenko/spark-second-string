@@ -5,7 +5,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class LcsSimilarity(left: Expression, right: Expression) extends MatrixMetricExpression {
+private[sparkss] case class LcsSimilarity(left: Expression, right: Expression) extends MatrixMetricExpression {
 
   private final val LcsSimilarityModule =
     "io.github.semyonsinchenko.sparkss.expressions.matrix.LcsSimilarity$.MODULE$"

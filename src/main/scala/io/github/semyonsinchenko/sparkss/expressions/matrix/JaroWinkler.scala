@@ -7,11 +7,11 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class JaroWinkler(
+private[sparkss] case class JaroWinkler(
     left: Expression,
     right: Expression,
-    prefixScale: Double = JaroWinkler.DefaultPrefixScale,
-    prefixCap: Int = JaroWinkler.DefaultPrefixCap
+    prefixScale: Double,
+    prefixCap: Int
 ) extends MatrixMetricExpression {
 
   private final val JaroWinklerModule =

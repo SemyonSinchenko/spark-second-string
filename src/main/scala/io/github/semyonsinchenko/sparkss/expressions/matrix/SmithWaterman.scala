@@ -7,12 +7,12 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class SmithWaterman(
+private[sparkss] case class SmithWaterman(
     left: Expression,
     right: Expression,
-    matchScore: Int = SmithWaterman.DefaultMatchScore,
-    mismatchPenalty: Int = SmithWaterman.DefaultMismatchPenalty,
-    gapPenalty: Int = SmithWaterman.DefaultGapPenalty
+    matchScore: Int,
+    mismatchPenalty: Int,
+    gapPenalty: Int
 ) extends MatrixMetricExpression {
 
   private final val SmithWatermanModule =

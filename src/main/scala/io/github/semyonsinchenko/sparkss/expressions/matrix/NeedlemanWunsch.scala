@@ -7,12 +7,12 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class NeedlemanWunsch(
+private[sparkss] case class NeedlemanWunsch(
     left: Expression,
     right: Expression,
-    matchScore: Int = NeedlemanWunsch.DefaultMatchScore,
-    mismatchPenalty: Int = NeedlemanWunsch.DefaultMismatchPenalty,
-    gapPenalty: Int = NeedlemanWunsch.DefaultGapPenalty
+    matchScore: Int,
+    mismatchPenalty: Int,
+    gapPenalty: Int
 ) extends MatrixMetricExpression {
 
   private final val NeedlemanWunschModule =

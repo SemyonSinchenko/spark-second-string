@@ -22,7 +22,7 @@ import org.apache.spark.unsafe.types.UTF8String
   *   val jaccard = Jaccard(col("a"), col("b"))
   *   }}}
   */
-case class Jaccard(left: Expression, right: Expression, ngramSize: Int = 0) extends TokenMetricExpression {
+private[sparkss] case class Jaccard(left: Expression, right: Expression, ngramSize: Int) extends TokenMetricExpression {
 
   private final val JaccardModule = "io.github.semyonsinchenko.sparkss.expressions.token.Jaccard$.MODULE$"
 

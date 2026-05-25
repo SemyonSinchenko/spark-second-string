@@ -28,11 +28,16 @@ The system SHALL validate configurable metric parameters during analysis using `
 - **THEN** query analysis fails before execution with an error that identifies the violated constraint
 
 ### Requirement: DSL supports parameterized overloads
-The system SHALL expose parameterized DSL overloads for configurable metrics while retaining existing overloads that delegate to default values.
+The system SHALL expose parameterized DSL overloads for configurable metrics while retaining existing overloads that delegate to default values, and SHALL keep those defaults defined at the DSL helper layer rather than as public expression-constructor defaults.
 
 #### Scenario: Legacy DSL call remains valid
 - **WHEN** a user calls `smithWaterman(left, right)` without tuning arguments
 - **THEN** the call compiles and executes by delegating to the parameterized form with default settings
+
+#### Scenario: Explicit-parameter construction is preserved internally
+- **WHEN** configurable expressions are instantiated by DSL helper implementations
+- **THEN** helper implementations SHALL provide explicit parameter values for tunable settings
+- **THEN** behavior for omitted tuning arguments SHALL remain backward compatible with legacy defaults
 
 ### Requirement: SQL compatibility remains stable for matrix and token metrics
 The system SHALL keep existing SQL function signatures unchanged for existing similarity metrics and SHALL not require extra SQL arguments for parameterized behavior.
