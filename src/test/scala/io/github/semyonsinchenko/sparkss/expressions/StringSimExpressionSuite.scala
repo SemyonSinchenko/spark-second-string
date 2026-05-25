@@ -234,7 +234,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT jaccard(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_jaccard(left, right) AS score FROM pairs").head().getDouble(0)
 
     assert(dslScore === (1.0 / 3.0))
     assert(sqlScore === dslScore)
@@ -253,7 +253,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT sorensen_dice(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_sorensen_dice(left, right) AS score FROM pairs").head().getDouble(0)
 
     assert(dslScore === 0.5)
     assert(sqlScore === dslScore)
@@ -272,7 +272,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT overlap_coefficient(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_overlap_coefficient(left, right) AS score FROM pairs").head().getDouble(0)
 
     assert(dslScore === 0.5)
     assert(sqlScore === dslScore)
@@ -1058,8 +1058,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlCosine = spark.sql("SELECT cosine(left, right) AS score FROM pairs").head().getDouble(0)
-    val sqlLevenshtein = spark.sql("SELECT levenshtein(left, right) AS score FROM pairs").collect()(1).getDouble(0)
+    val sqlCosine = spark.sql("SELECT ss_cosine(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlLevenshtein = spark.sql("SELECT ss_levenshtein(left, right) AS score FROM pairs").collect()(1).getDouble(0)
 
     assert(sqlCosine === dslCosine)
     assert(sqlLevenshtein === dslLevenshtein)
@@ -1078,7 +1078,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT jaro(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_jaro(left, right) AS score FROM pairs").head().getDouble(0)
 
     assertClose(dslScore, 17.0 / 18.0)
     assert(sqlScore === dslScore)
@@ -1097,7 +1097,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT jaro_winkler(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_jaro_winkler(left, right) AS score FROM pairs").head().getDouble(0)
 
     assertClose(dslScore, 0.9611111111111111)
     assert(sqlScore === dslScore)
@@ -1116,7 +1116,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT needleman_wunsch(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_needleman_wunsch(left, right) AS score FROM pairs").head().getDouble(0)
 
     assert(dslScore === 0.8)
     assert(sqlScore === dslScore)
@@ -1135,7 +1135,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT smith_waterman(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_smith_waterman(left, right) AS score FROM pairs").head().getDouble(0)
 
     assertClose(dslScore, 0.7)
     assert(sqlScore === dslScore)
@@ -1154,7 +1154,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT affine_gap(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_affine_gap(left, right) AS score FROM pairs").head().getDouble(0)
 
     assert(sqlScore === dslScore)
   }
@@ -1163,19 +1163,19 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     spark.registerStringSimilarityFunctions()
 
     val metricNames = Seq(
-      "jaccard",
-      "sorensen_dice",
-      "overlap_coefficient",
-      "cosine",
-      "braun_blanquet",
-      "monge_elkan",
-      "levenshtein",
-      "lcs_similarity",
-      "jaro",
-      "jaro_winkler",
-      "needleman_wunsch",
-      "smith_waterman",
-      "affine_gap"
+      "ss_jaccard",
+      "ss_sorensen_dice",
+      "ss_overlap_coefficient",
+      "ss_cosine",
+      "ss_braun_blanquet",
+      "ss_monge_elkan",
+      "ss_levenshtein",
+      "ss_lcs_similarity",
+      "ss_jaro",
+      "ss_jaro_winkler",
+      "ss_needleman_wunsch",
+      "ss_smith_waterman",
+      "ss_affine_gap"
     )
 
     metricNames.foreach { metric =>
@@ -1202,8 +1202,8 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlBraun = spark.sql("SELECT braun_blanquet(left, right) AS score FROM pairs").head().getDouble(0)
-    val sqlLcs = spark.sql("SELECT lcs_similarity(left, right) AS score FROM pairs").collect()(1).getDouble(0)
+    val sqlBraun = spark.sql("SELECT ss_braun_blanquet(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlLcs = spark.sql("SELECT ss_lcs_similarity(left, right) AS score FROM pairs").collect()(1).getDouble(0)
 
     assert(sqlBraun === dslBraun)
     assert(sqlLcs === dslLcs)
@@ -1222,7 +1222,7 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     spark.registerStringSimilarityFunctions()
     frame.createOrReplaceTempView("pairs")
-    val sqlScore = spark.sql("SELECT monge_elkan(left, right) AS score FROM pairs").head().getDouble(0)
+    val sqlScore = spark.sql("SELECT ss_monge_elkan(left, right) AS score FROM pairs").head().getDouble(0)
 
     assert(sqlScore === dslScore)
   }
@@ -1311,19 +1311,19 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     spark.registerStringSimilarityFunctions()
 
     val dslMetrics = Seq(
-      "jaccard",
-      "sorensen_dice",
-      "overlap_coefficient",
-      "cosine",
-      "braun_blanquet",
-      "monge_elkan",
-      "levenshtein",
-      "lcs_similarity",
-      "jaro",
-      "jaro_winkler",
-      "needleman_wunsch",
-      "smith_waterman",
-      "affine_gap"
+      "ss_jaccard",
+      "ss_sorensen_dice",
+      "ss_overlap_coefficient",
+      "ss_cosine",
+      "ss_braun_blanquet",
+      "ss_monge_elkan",
+      "ss_levenshtein",
+      "ss_lcs_similarity",
+      "ss_jaro",
+      "ss_jaro_winkler",
+      "ss_needleman_wunsch",
+      "ss_smith_waterman",
+      "ss_affine_gap"
     )
 
     dslMetrics.foreach { metric =>

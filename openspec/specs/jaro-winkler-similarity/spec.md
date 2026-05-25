@@ -46,3 +46,11 @@ The system SHALL validate `jaro_winkler` correctness and execution parity across
 - **WHEN** validation and benchmark suites are defined for `jaro_winkler`
 - **THEN** correctness tests SHALL cover empty-input boundaries, no-match inputs, identical strings, repeated characters, and asymmetric lengths
 - **THEN** benchmarks SHALL include short, medium, and long string pairs with both high-overlap and low-overlap cases
+
+### Requirement: Canonical SQL name for Jaro-Winkler
+The system SHALL register Jaro-Winkler for SQL invocation under the canonical name `ss_jaro_winkler`.
+
+#### Scenario: SQL invocation name
+- **WHEN** Jaro-Winkler is exposed through Spark SQL function registration
+- **THEN** the available SQL function name SHALL be `ss_jaro_winkler`
+- **THEN** the unprefixed SQL function name `jaro_winkler` SHALL NOT be registered

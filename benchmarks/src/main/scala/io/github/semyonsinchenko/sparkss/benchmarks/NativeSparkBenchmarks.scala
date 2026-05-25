@@ -73,29 +73,29 @@ abstract class NativeSparkMatrixBenchmarkBase {
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
 class NativeSparkAffineGapBenchmark extends NativeSparkMatrixBenchmarkBase {
-  override protected val functionName: String = "affine_gap"
+  override protected val functionName: String = "ss_affine_gap"
 }
 
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
 class NativeSparkNeedlemanWunschBenchmark extends NativeSparkMatrixBenchmarkBase {
-  override protected val functionName: String = "needleman_wunsch"
+  override protected val functionName: String = "ss_needleman_wunsch"
 }
 
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
 class NativeSparkSmithWatermanBenchmark extends NativeSparkMatrixBenchmarkBase {
-  override protected val functionName: String = "smith_waterman"
+  override protected val functionName: String = "ss_smith_waterman"
 }
 
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
 class NativeSparkJaroWinklerBenchmark extends NativeSparkMatrixBenchmarkBase {
-  override protected val functionName: String = "jaro_winkler"
+  override protected val functionName: String = "ss_jaro_winkler"
 }
 
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
 class NativeSparkMongeElkanBenchmark extends NativeSparkMatrixBenchmarkBase {
-  override protected val functionName: String = "monge_elkan"
+  override protected val functionName: String = "ss_monge_elkan"
 }

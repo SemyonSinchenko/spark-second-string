@@ -58,3 +58,11 @@ The system SHALL provide benchmark coverage for normalized Levenshtein in the be
 - **WHEN** benchmark scenarios are executed
 - **THEN** scenarios SHALL include short, medium, and long input lengths
 - **THEN** scenarios SHALL include low-edit-distance and high-edit-distance string pairs
+
+### Requirement: Canonical SQL name for Levenshtein
+The system SHALL register the Levenshtein metric for SQL invocation under the canonical name `ss_levenshtein`.
+
+#### Scenario: SQL invocation name
+- **WHEN** Levenshtein is exposed through Spark SQL function registration
+- **THEN** the available SQL function name SHALL be `ss_levenshtein`
+- **THEN** the unprefixed SQL function name `levenshtein` SHALL NOT be registered

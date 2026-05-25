@@ -3,8 +3,8 @@ import laika.format.Markdown.GitHubFlavor
 
 import scala.sys.process.*
 
-val sparkVersion = settingKey[String]("Spark version to build against")
-ThisBuild / sparkVersion := sys.props.getOrElse("sparkVersion", "4.0.2")
+lazy val sparkVersion = sys.props.getOrElse("sparkVersion", "4.0.2")
+lazy val sparkMinorVersion = sparkVersion.split("\\.").take(2).mkString(".")
 
 val baseVersion = settingKey[String]("Version truncated to major.minor.patch")
 
@@ -22,7 +22,7 @@ val generateDocsVariables = taskKey[Unit]("Generate Laika variable files from be
 
 // Dynamic Scala version based on Spark version
 ThisBuild / scalaVersion := {
-  val sv = (ThisBuild / sparkVersion).value
+  val sv = sparkVersion
   if (sv.startsWith("3.5")) {
     "2.12.21"
   } else if (sv.startsWith("4.")) {
@@ -53,12 +53,6 @@ ThisBuild / developers := List(
   )
 )
 
-// Dynamic artifact naming based on Spark minor version
-ThisBuild / artifactName := { (sv: ScalaVersion, module: ModuleID, artifact: Artifact) =>
-  val sparkMinor = (ThisBuild / sparkVersion).value.split("\\.").take(2).mkString(".")
-  s"spark-second-string-$sparkMinor"
-}
-
 // Required JVM options for Spark (ADD_OPENS)
 val sparkJavaOptions = Seq(
   "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
@@ -81,7 +75,7 @@ lazy val commonSettings = Seq(
   javaOptions ++= sparkJavaOptions,
   Test / fork := true,
   Compile / unmanagedSourceDirectories += {
-    val sparkMajor = (ThisBuild / sparkVersion).value.split("\\.").headOption.getOrElse("4")
+    val sparkMajor = sparkVersion.split("\\.").headOption.getOrElse("4")
     val shimDir = if (sparkMajor == "3") "spark3" else "spark4"
     baseDirectory.value / "src" / "main" / shimDir
   }
@@ -92,8 +86,9 @@ lazy val root = (project in file("."))
   .settings(commonSettings: _*)
   .settings(
     name := "spark-second-string",
+    moduleName := s"${name.value}-spark${sparkMinorVersion}",
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value % Provided,
+      "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
       "commons-codec" % "commons-codec" % "1.21.0" % Provided,
       "org.scalatest" %% "scalatest" % "3.2.20" % Test,
       "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
@@ -109,7 +104,7 @@ lazy val benchmarks = (project in file("benchmarks"))
     publish / skip := true,
     resolvers += "Cogcomp" at "https://cogcomp.seas.upenn.edu/m2repo/",
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value,
+      "org.apache.spark" %% "spark-sql" % sparkVersion,
       "commons-codec" % "commons-codec" % "1.21.0",
       "com.wcohen" % "SecondString" % "1.0" % Runtime
     )
@@ -138,8 +133,8 @@ lazy val fuzzyTesting = Project("fuzzy-testing", file("fuzzy-testing"))
     publish / skip := true,
     resolvers += "Cogcomp" at "https://cogcomp.seas.upenn.edu/m2repo/",
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-sql" % (ThisBuild / sparkVersion).value,
-      "org.apache.spark" %% "spark-mllib" % (ThisBuild / sparkVersion).value,
+      "org.apache.spark" %% "spark-sql" % sparkVersion,
+      "org.apache.spark" %% "spark-mllib" % sparkVersion,
       "commons-codec" % "commons-codec" % "1.21.0",
       "com.wcohen" % "SecondString" % "1.0" % Runtime,
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
