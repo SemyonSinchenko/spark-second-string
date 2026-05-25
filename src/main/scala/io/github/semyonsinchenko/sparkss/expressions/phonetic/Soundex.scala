@@ -4,7 +4,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class Soundex(child: Expression) extends PhoneticExpression {
+private[sparkss] case class Soundex(child: Expression) extends PhoneticExpression {
 
   private final val SoundexModule = "io.github.semyonsinchenko.sparkss.expressions.phonetic.Soundex$.MODULE$"
 

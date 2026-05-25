@@ -4,7 +4,7 @@ import org.apache.spark.sql.Column
 import org.apache.spark.sql.SparkColumnCompatBridge
 import org.apache.spark.sql.catalyst.expressions.Expression
 
-object SparkColumnInterop {
+private[sparkss] object SparkColumnInterop {
 
   def toExpression(column: Column): Expression = {
     SparkColumnCompatBridge.toExpression(column)

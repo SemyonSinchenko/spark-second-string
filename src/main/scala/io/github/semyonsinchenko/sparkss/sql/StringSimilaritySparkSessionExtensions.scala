@@ -20,315 +20,222 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
 
 object StringSimilaritySparkSessionExtensions {
 
+  private type FunctionBuilder = Seq[Expression] => Expression
+
+  private final case class RegisteredFunction(name: String, expressionClassName: String, builder: FunctionBuilder)
+
+  private val allFunctions: Seq[RegisteredFunction] = Seq(
+    RegisteredFunction(
+      "ss_jaccard",
+      classOf[Jaccard].getName,
+      {
+        case Seq(left, right) => Jaccard(left, right, 0)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_jaccard expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_sorensen_dice",
+      classOf[SorensenDice].getName,
+      {
+        case Seq(left, right) => SorensenDice(left, right, 0)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_sorensen_dice expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_overlap_coefficient",
+      classOf[OverlapCoefficient].getName,
+      {
+        case Seq(left, right) => OverlapCoefficient(left, right, 0)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_overlap_coefficient expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_cosine",
+      classOf[Cosine].getName,
+      {
+        case Seq(left, right) => Cosine(left, right, 0)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_cosine expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_braun_blanquet",
+      classOf[BraunBlanquet].getName,
+      {
+        case Seq(left, right) => BraunBlanquet(left, right, 0)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_braun_blanquet expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_monge_elkan",
+      classOf[MongeElkan].getName,
+      {
+        case Seq(left, right) => MongeElkan(left, right, MongeElkan.DefaultInnerMetric, 0)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_monge_elkan expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_levenshtein",
+      classOf[Levenshtein].getName,
+      {
+        case Seq(left, right) => Levenshtein(left, right)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_levenshtein expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_lcs_similarity",
+      classOf[LcsSimilarity].getName,
+      {
+        case Seq(left, right) => LcsSimilarity(left, right)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_lcs_similarity expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_jaro",
+      classOf[Jaro].getName,
+      {
+        case Seq(left, right) => Jaro(left, right)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_jaro expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_jaro_winkler",
+      classOf[JaroWinkler].getName,
+      {
+        case Seq(left, right) => JaroWinkler(left, right, JaroWinkler.DefaultPrefixScale, JaroWinkler.DefaultPrefixCap)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_jaro_winkler expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_needleman_wunsch",
+      classOf[NeedlemanWunsch].getName,
+      {
+        case Seq(left, right) =>
+          NeedlemanWunsch(
+            left,
+            right,
+            NeedlemanWunsch.DefaultMatchScore,
+            NeedlemanWunsch.DefaultMismatchPenalty,
+            NeedlemanWunsch.DefaultGapPenalty
+          )
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_needleman_wunsch expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_smith_waterman",
+      classOf[SmithWaterman].getName,
+      {
+        case Seq(left, right) =>
+          SmithWaterman(
+            left,
+            right,
+            SmithWaterman.DefaultMatchScore,
+            SmithWaterman.DefaultMismatchPenalty,
+            SmithWaterman.DefaultGapPenalty
+          )
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_smith_waterman expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_affine_gap",
+      classOf[AffineGap].getName,
+      {
+        case Seq(left, right) =>
+          AffineGap(
+            left,
+            right,
+            AffineGap.DefaultMismatchPenalty,
+            AffineGap.DefaultGapOpenPenalty,
+            AffineGap.DefaultGapExtendPenalty
+          )
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_affine_gap expects 2 arguments, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_soundex",
+      classOf[Soundex].getName,
+      {
+        case Seq(input) => Soundex(input)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_soundex expects 1 argument, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_refined_soundex",
+      classOf[RefinedSoundex].getName,
+      {
+        case Seq(input) => RefinedSoundex(input)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_refined_soundex expects 1 argument, found ${args.size}"
+          )
+      }
+    ),
+    RegisteredFunction(
+      "ss_double_metaphone",
+      classOf[DoubleMetaphone].getName,
+      {
+        case Seq(input) => DoubleMetaphone(input)
+        case args =>
+          throw new IllegalArgumentException(
+            s"Function ss_double_metaphone expects 1 argument, found ${args.size}"
+          )
+      }
+    )
+  )
+
+  private[sql] def registerAllFunctions(
+      register: (FunctionIdentifier, ExpressionInfo, FunctionBuilder) => Unit
+  ): Unit = {
+    allFunctions.foreach { fn =>
+      register(FunctionIdentifier(fn.name), new ExpressionInfo(fn.expressionClassName, fn.name), fn.builder)
+    }
+  }
+
   implicit class StringSimilaritySparkSessionOps(private val spark: SparkSession) extends AnyVal {
 
     def registerStringSimilarityFunctions(): Unit = {
-      registerJaccard(spark)
-      registerSorensenDice(spark)
-      registerOverlapCoefficient(spark)
-      registerCosine(spark)
-      registerBraunBlanquet(spark)
-      registerMongeElkan(spark)
-      registerLevenshtein(spark)
-      registerLcsSimilarity(spark)
-      registerJaro(spark)
-      registerJaroWinkler(spark)
-      registerNeedlemanWunsch(spark)
-      registerSmithWaterman(spark)
-      registerAffineGap(spark)
-      registerSoundex(spark)
-      registerRefinedSoundex(spark)
-      registerDoubleMetaphone(spark)
+      registerAllFunctions(spark.sessionState.functionRegistry.registerFunction)
     }
-  }
-
-  private def registerJaccard(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[Jaccard].getName, "ss_jaccard")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => Jaccard(left, right, 0)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_jaccard expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_jaccard"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerSorensenDice(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[SorensenDice].getName, "ss_sorensen_dice")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => SorensenDice(left, right, 0)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_sorensen_dice expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_sorensen_dice"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerOverlapCoefficient(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[OverlapCoefficient].getName, "ss_overlap_coefficient")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => OverlapCoefficient(left, right, 0)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_overlap_coefficient expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_overlap_coefficient"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerCosine(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[Cosine].getName, "ss_cosine")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => Cosine(left, right, 0)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_cosine expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_cosine"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerBraunBlanquet(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[BraunBlanquet].getName, "ss_braun_blanquet")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => BraunBlanquet(left, right, 0)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_braun_blanquet expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_braun_blanquet"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerMongeElkan(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[MongeElkan].getName, "ss_monge_elkan")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => MongeElkan(left, right, MongeElkan.DefaultInnerMetric, 0)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_monge_elkan expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_monge_elkan"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerLevenshtein(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[Levenshtein].getName, "ss_levenshtein")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => Levenshtein(left, right)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_levenshtein expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_levenshtein"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerLcsSimilarity(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[LcsSimilarity].getName, "ss_lcs_similarity")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => LcsSimilarity(left, right)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_lcs_similarity expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_lcs_similarity"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerJaro(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[Jaro].getName, "ss_jaro")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => Jaro(left, right)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_jaro expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_jaro"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerJaroWinkler(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[JaroWinkler].getName, "ss_jaro_winkler")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => JaroWinkler(left, right, JaroWinkler.DefaultPrefixScale, JaroWinkler.DefaultPrefixCap)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_jaro_winkler expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_jaro_winkler"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerNeedlemanWunsch(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[NeedlemanWunsch].getName, "ss_needleman_wunsch")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => NeedlemanWunsch(
-          left,
-          right,
-          NeedlemanWunsch.DefaultMatchScore,
-          NeedlemanWunsch.DefaultMismatchPenalty,
-          NeedlemanWunsch.DefaultGapPenalty
-        )
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_needleman_wunsch expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_needleman_wunsch"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerSmithWaterman(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[SmithWaterman].getName, "ss_smith_waterman")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => SmithWaterman(
-          left,
-          right,
-          SmithWaterman.DefaultMatchScore,
-          SmithWaterman.DefaultMismatchPenalty,
-          SmithWaterman.DefaultGapPenalty
-        )
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_smith_waterman expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_smith_waterman"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerAffineGap(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[AffineGap].getName, "ss_affine_gap")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(left, right) => AffineGap(
-          left,
-          right,
-          AffineGap.DefaultMismatchPenalty,
-          AffineGap.DefaultGapOpenPenalty,
-          AffineGap.DefaultGapExtendPenalty
-        )
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_affine_gap expects 2 arguments, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_affine_gap"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerSoundex(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[Soundex].getName, "ss_soundex")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(input) => Soundex(input)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_soundex expects 1 argument, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_soundex"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerRefinedSoundex(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[RefinedSoundex].getName, "ss_refined_soundex")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(input) => RefinedSoundex(input)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_refined_soundex expects 1 argument, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_refined_soundex"),
-      expressionInfo,
-      builder
-    )
-  }
-
-  private def registerDoubleMetaphone(spark: SparkSession): Unit = {
-    val expressionInfo = new ExpressionInfo(classOf[DoubleMetaphone].getName, "ss_double_metaphone")
-    val builder: Seq[Expression] => Expression = {
-      case Seq(input) => DoubleMetaphone(input)
-      case args =>
-        throw new IllegalArgumentException(
-          s"Function ss_double_metaphone expects 1 argument, found ${args.size}"
-        )
-    }
-
-    spark.sessionState.functionRegistry.registerFunction(
-      FunctionIdentifier("ss_double_metaphone"),
-      expressionInfo,
-      builder
-    )
   }
 }

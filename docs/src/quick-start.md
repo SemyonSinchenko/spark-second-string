@@ -22,6 +22,12 @@ val scored = pairs
 
 ## Usage Flow B: Spark SQL Extension Functions
 
+Recommended for cluster/session bootstrap (Spark SQL and PySpark):
+
+```bash
+--conf spark.sql.extensions=io.github.semyonsinchenko.sparkss.sql.SparkSecondStringExtension
+```
+
 ```scala
 import io.github.semyonsinchenko.sparkss.sql.StringSimilaritySparkSessionExtensions._
 
@@ -36,6 +42,21 @@ val scored = spark.sql(
     |FROM candidate_pairs
     |""".stripMargin
 )
+```
+
+PySpark startup example:
+
+```python
+spark = (
+    SparkSession.builder
+    .config(
+        "spark.sql.extensions",
+        "io.github.semyonsinchenko.sparkss.sql.SparkSecondStringExtension",
+    )
+    .getOrCreate()
+)
+
+spark.sql("SELECT ss_jaro_winkler('martha', 'marhta') AS score").show()
 ```
 
 Note: SQL similarity functions stay two-argument for compatibility; configurable metric parameters and `ngramSize` are available via `StringSimilarityFunctions` DSL overloads.

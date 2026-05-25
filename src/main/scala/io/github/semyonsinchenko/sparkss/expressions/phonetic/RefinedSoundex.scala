@@ -4,7 +4,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenContext
 import org.apache.spark.unsafe.types.UTF8String
 
-case class RefinedSoundex(child: Expression) extends PhoneticExpression {
+private[sparkss] case class RefinedSoundex(child: Expression) extends PhoneticExpression {
 
   private final val RefinedSoundexModule =
     "io.github.semyonsinchenko.sparkss.expressions.phonetic.RefinedSoundex$.MODULE$"
