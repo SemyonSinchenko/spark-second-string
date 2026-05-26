@@ -2,7 +2,7 @@ package io.github.semyonsinchenko.sparkss.expressions.matrix
 
 import org.apache.spark.unsafe.types.UTF8String
 
-object MatrixMetricKernelHelper {
+private[sparkss] object MatrixMetricKernelHelper {
 
   private final val NoBoundaryResult = Double.NaN
 
@@ -43,20 +43,6 @@ object MatrixMetricKernelHelper {
 
   private[sparkss] def hasBoundaryResult(value: Double): Boolean = {
     !java.lang.Double.isNaN(value)
-  }
-
-  private[sparkss] def createWorkspaceRow(size: Int): Array[Int] = {
-    new Array[Int](size)
-  }
-
-  private[sparkss] def createInitializedDistanceRow(size: Int): Array[Int] = {
-    val row = createWorkspaceRow(size)
-    var index = 0
-    while (index < size) {
-      row(index) = index
-      index += 1
-    }
-    row
   }
 
   private[sparkss] def normalizeDistance(distance: Int, leftLength: Int, rightLength: Int): Double = {

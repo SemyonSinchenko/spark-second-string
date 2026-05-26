@@ -1,6 +1,6 @@
 package io.github.semyonsinchenko.sparkss.expressions.token
 
-object TokenMetricKernelHelper {
+private[sparkss] object TokenMetricKernelHelper {
 
   private[sparkss] def tokenizeToSet(value: String): java.util.HashSet[String] = {
     val tokens = new java.util.HashSet[String]()

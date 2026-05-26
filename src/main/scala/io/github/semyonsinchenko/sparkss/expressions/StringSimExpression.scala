@@ -8,25 +8,8 @@ import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, 
 import org.apache.spark.sql.types.{DataType, DoubleType, StringType}
 import org.apache.spark.unsafe.types.UTF8String
 
-/** Abstract base class for string similarity Catalyst expressions.
-  *
-  * Provides common boilerplate for binary string expressions that return a Double similarity score. Subclasses must
-  * implement the similarity algorithm via getSim and code generation via doGenCode.
-  *
-  * @example
-  *   {{{
-  *   class Jaccard extends StringSimExpression {
-  *     override def getSim(left: String, right: String): Double = {
-  *       // implementation
-  *     }
-  *
-  *     override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-  *       // code generation
-  *     }
-  *   }
-  *   }}}
-  */
-abstract class StringSimExpression
+/** Abstract base class for string similarity Catalyst expressions. */
+private[sparkss] abstract class StringSimExpression
     extends BinaryExpression
     with ImplicitCastInputTypes
     with NullIntolerantCompat
