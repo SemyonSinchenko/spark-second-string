@@ -3,7 +3,7 @@ import laika.helium.Helium
 import laika.helium.config.*
 import laika.theme.ThemeProvider
 
-object LaikaConfig {
+object LaikaTheme {
   def getLaikaTheme: String => ThemeProvider = (v: String) => Helium.defaults.all.metadata(
     title = Some("Spark Second String"),
     description = Some("Documentation for Spark Second String, a library for approximate string matching in Apache Spark."),

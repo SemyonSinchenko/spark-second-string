@@ -151,7 +151,7 @@ lazy val docs = project
   .settings(
     name := "spark-second-string-docs",
     publish / skip := true,
-    laikaTheme := LaikaConfig.getLaikaTheme((ThisBuild / baseVersion).value),
+    laikaTheme := LaikaTheme.getLaikaTheme((ThisBuild / baseVersion).value),
     laikaExtensions := Seq(GitHubFlavor, SyntaxHighlighting),
     generateDocsVariables := {
       val repoRoot = baseDirectory.value.getParentFile
