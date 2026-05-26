@@ -32,9 +32,9 @@ Then `JOIN ... ON l.block_key = r.block_key` produces candidate pairs without th
 This is where `spark-second-string` lives. For each candidate pair, compute one or more similarity scores and keep pairs above a threshold:
 
 ```sql
-SELECT l.id, r.id, jaro_winkler(l.name, r.name) AS name_sim
+SELECT l.id, r.id, ss_jaro_winkler(l.name, r.name) AS name_sim
 FROM pairs
-WHERE jaro_winkler(l.name, r.name) > 0.85
+WHERE ss_jaro_winkler(l.name, r.name) > 0.85
 ```
 
 Multiple metrics are cheap — every metric is a single Catalyst expression that fuses into the same whole-stage codegen block as the surrounding filter.
@@ -86,8 +86,8 @@ Word-level Jaccard via `split` is slightly less ugly but still naive on whitespa
 The equivalent with this library:
 
 ```sql
-SELECT jaccard(a, b, 3) FROM pairs   -- character trigrams
-SELECT jaccard(a, b)    FROM pairs   -- whitespace-tokenized words
+SELECT ss_jaccard(a, b, 3) FROM pairs   -- character trigrams
+SELECT ss_jaccard(a, b)    FROM pairs   -- whitespace-tokenized words
 ```
 
 For Jaro, Jaro-Winkler, Smith-Waterman, Needleman-Wunsch, Monge-Elkan, and the rest there is no built-in at all — a UDF is the only fallback, which puts you back in row 1 of the table.

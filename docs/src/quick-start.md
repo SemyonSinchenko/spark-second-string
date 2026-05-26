@@ -36,8 +36,8 @@ spark.registerStringSimilarityFunctions()
 val scored = spark.sql(
   """
     |SELECT id,
-    |       jaro_winkler(left_name, right_name) AS jw,
-    |       smith_waterman(left_name, right_name) AS sw,
+    |       ss_jaro_winkler(left_name, right_name) AS jw,
+    |       ss_smith_waterman(left_name, right_name) AS sw,
     |       ss_soundex(left_name) AS left_soundex
     |FROM candidate_pairs
     |""".stripMargin

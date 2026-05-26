@@ -43,7 +43,7 @@ Example (Spark SQL extension registration):
 import io.github.semyonsinchenko.sparkss.sql.StringSimilaritySparkSessionExtensions._
 
 spark.registerStringSimilarityFunctions()
-spark.sql("SELECT jaro_winkler(left_name, right_name) AS score FROM pairs")
+spark.sql("SELECT ss_jaro_winkler(left_name, right_name) AS score FROM pairs")
 ```
 
 ## Migration Note

@@ -5,7 +5,7 @@ completely different. Phonetic encoders return a `String` encoding. Every metric
 DSL (`StringSimilarityFunctions`) and Spark SQL (`StringSimilaritySparkSessionExtensions`).
 
 > Migration note: Scala/Java DSL helpers were renamed from `monge_elkan` to `mongeElkan` and from `affine_gap` to
-> `affineGap`. SQL function names remain `monge_elkan` and `affine_gap`.
+> `affineGap`. SQL function names use the `ss_` prefix (for example, `ss_monge_elkan` and `ss_affine_gap`).
 
 ## Token-based metrics
 
@@ -22,7 +22,7 @@ Set intersection over set union.
 |            |                                                                          |
 |------------|--------------------------------------------------------------------------|
 | DSL        | `jaccard(left, right)` / `jaccard(left, right, ngramSize)`               |
-| SQL        | `jaccard(left, right)`                                                   |
+| SQL        | `ss_jaccard(left, right)`                                                |
 | Parameters | `ngramSize: Int` (default 0 = whitespace tokens, >0 = character n-grams) |
 
 ### Sorensen-Dice
@@ -34,7 +34,7 @@ Doubled intersection over the sum of set sizes. Emphasizes overlap more than Jac
 |            |                                                                      |
 |------------|----------------------------------------------------------------------|
 | DSL        | `sorensenDice(left, right)` / `sorensenDice(left, right, ngramSize)` |
-| SQL        | `sorensen_dice(left, right)`                                         |
+| SQL        | `ss_sorensen_dice(left, right)`                                      |
 | Parameters | `ngramSize: Int` (default 0)                                         |
 
 ### Overlap Coefficient
@@ -46,7 +46,7 @@ Intersection relative to the smaller set. A value of 1.0 means one token set is 
 |            |                                                                                  |
 |------------|----------------------------------------------------------------------------------|
 | DSL        | `overlapCoefficient(left, right)` / `overlapCoefficient(left, right, ngramSize)` |
-| SQL        | `overlap_coefficient(left, right)`                                               |
+| SQL        | `ss_overlap_coefficient(left, right)`                                            |
 | Parameters | `ngramSize: Int` (default 0)                                                     |
 
 ### Cosine
@@ -58,7 +58,7 @@ Token-set cosine similarity (binary term vectors).
 |            |                                                          |
 |------------|----------------------------------------------------------|
 | DSL        | `cosine(left, right)` / `cosine(left, right, ngramSize)` |
-| SQL        | `cosine(left, right)`                                    |
+| SQL        | `ss_cosine(left, right)`                                 |
 | Parameters | `ngramSize: Int` (default 0)                             |
 
 ### Braun-Blanquet
@@ -70,7 +70,7 @@ Intersection relative to the larger set. Stricter than Overlap Coefficient becau
 |            |                                                                        |
 |------------|------------------------------------------------------------------------|
 | DSL        | `braunBlanquet(left, right)` / `braunBlanquet(left, right, ngramSize)` |
-| SQL        | `braun_blanquet(left, right)`                                          |
+| SQL        | `ss_braun_blanquet(left, right)`                                       |
 | Parameters | `ngramSize: Int` (default 0)                                           |
 
 ### Monge-Elkan
@@ -81,7 +81,7 @@ using a character-level inner metric, and the scores are averaged symmetrically 
 |            |                                                                                                                                                                  |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | DSL        | `mongeElkan(left, right)` / `mongeElkan(left, right, innerMetric)` / `mongeElkan(left, right, innerMetric, ngramSize)`                                        |
-| SQL        | `monge_elkan(left, right)`                                                                                                                                       |
+| SQL        | `ss_monge_elkan(left, right)`                                                                                                                                    |
 | Parameters | `innerMetric: String` (default `"jaro_winkler"`, also accepts `"jaro"`, `"levenshtein"`, `"needleman_wunsch"`, `"smith_waterman"`), `ngramSize: Int` (default 0) |
 
 ## Matrix / edit-distance metrics
@@ -99,7 +99,7 @@ normalized by the longer string length.
 |            |                            |
 |------------|----------------------------|
 | DSL        | `levenshtein(left, right)` |
-| SQL        | `levenshtein(left, right)` |
+| SQL        | `ss_levenshtein(left, right)` |
 | Parameters | none                       |
 
 ### LCS Similarity
@@ -111,7 +111,7 @@ Longest Common Subsequence length (order-preserving, not necessarily contiguous)
 |            |                               |
 |------------|-------------------------------|
 | DSL        | `lcsSimilarity(left, right)`  |
-| SQL        | `lcs_similarity(left, right)` |
+| SQL        | `ss_lcs_similarity(left, right)` |
 | Parameters | none                          |
 
 ### Jaro
@@ -123,7 +123,7 @@ Counts matching characters within a sliding window and transpositions (matches i
 |            |                     |
 |------------|---------------------|
 | DSL        | `jaro(left, right)` |
-| SQL        | `jaro(left, right)` |
+| SQL        | `ss_jaro(left, right)` |
 | Parameters | none                |
 
 ### Jaro-Winkler
@@ -136,7 +136,7 @@ e.g. name typos).
 |            |                                                                                                       |
 |------------|-------------------------------------------------------------------------------------------------------|
 | DSL        | `jaroWinkler(left, right)` / `jaroWinkler(left, right, prefixScale, prefixCap)`                       |
-| SQL        | `jaro_winkler(left, right)`                                                                           |
+| SQL        | `ss_jaro_winkler(left, right)`                                                                        |
 | Parameters | `prefixScale: Double` (default 0.1, range `(0, 0.25]`), `prefixCap: Int` (default 4, range `[1, 10]`) |
 
 ### Needleman-Wunsch
@@ -148,7 +148,7 @@ Global sequence alignment: aligns entire strings end-to-end, penalizing every ga
 |            |                                                                                                                |
 |------------|----------------------------------------------------------------------------------------------------------------|
 | DSL        | `needlemanWunsch(left, right)` / `needlemanWunsch(left, right, matchScore, mismatchPenalty, gapPenalty)`       |
-| SQL        | `needleman_wunsch(left, right)`                                                                                |
+| SQL        | `ss_needleman_wunsch(left, right)`                                                                             |
 | Parameters | `matchScore: Int` (default 1, >0), `mismatchPenalty: Int` (default -1, <0), `gapPenalty: Int` (default -1, <0) |
 
 ### Smith-Waterman
@@ -160,7 +160,7 @@ Local sequence alignment: finds the best-matching substring pair, ignoring unrel
 |            |                                                                                                                  |
 |------------|------------------------------------------------------------------------------------------------------------------|
 | DSL        | `smithWaterman(left, right)` / `smithWaterman(left, right, matchScore, mismatchPenalty, gapPenalty)`             |
-| SQL        | `smith_waterman(left, right)`                                                                                    |
+| SQL        | `ss_smith_waterman(left, right)`                                                                                 |
 | Parameters | `matchScore: Int` (default 2, >0), `mismatchPenalty: Int` (default -1, <=0), `gapPenalty: Int` (default -1, <=0) |
 
 ### Affine Gap
@@ -175,7 +175,7 @@ real-world string variations where insertions and deletions tend to cluster.
 |            |                                                                                                                           |
 |------------|---------------------------------------------------------------------------------------------------------------------------|
 | DSL        | `affineGap(left, right)` / `affineGap(left, right, mismatchPenalty, gapOpenPenalty, gapExtendPenalty)`                  |
-| SQL        | `affine_gap(left, right)`                                                                                                 |
+| SQL        | `ss_affine_gap(left, right)`                                                                                              |
 | Parameters | `mismatchPenalty: Int` (default -1, <0), `gapOpenPenalty: Int` (default -2, <0), `gapExtendPenalty: Int` (default -1, <0) |
 
 ## Phonetic encoders

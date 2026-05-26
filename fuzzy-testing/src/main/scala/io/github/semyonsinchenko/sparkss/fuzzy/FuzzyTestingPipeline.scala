@@ -121,7 +121,7 @@ private[fuzzy] object FuzzyTestingPipeline {
   private val MetricSpecs = Seq(
     MetricSpec(
       metric = "needleman_wunsch",
-      nativeFunction = "needleman_wunsch",
+      nativeFunction = "ss_needleman_wunsch",
       legacyUdfName = Some("legacy_needleman_wunsch"),
       legacyClassNames = Seq("com.wcohen.secondstring.NeedlemanWunsch", "com.wcohen.ss.NeedlemanWunsch"),
       scaler = needlemanWunschScaler,
@@ -132,7 +132,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "smith_waterman",
-      nativeFunction = "smith_waterman",
+      nativeFunction = "ss_smith_waterman",
       legacyUdfName = Some("legacy_smith_waterman"),
       legacyClassNames = Seq("com.wcohen.secondstring.SmithWaterman", "com.wcohen.ss.SmithWaterman"),
       scaler = smithWatermanScaler,
@@ -143,7 +143,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "jaro_winkler",
-      nativeFunction = "jaro_winkler",
+      nativeFunction = "ss_jaro_winkler",
       legacyUdfName = Some("legacy_jaro_winkler"),
       legacyClassNames = Seq("com.wcohen.secondstring.JaroWinkler", "com.wcohen.ss.JaroWinkler"),
       scaler = identityScaler,
@@ -154,7 +154,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "monge_elkan",
-      nativeFunction = "monge_elkan",
+      nativeFunction = "ss_monge_elkan",
       legacyUdfName = Some("legacy_monge_elkan"),
       legacyClassNames = Seq("com.wcohen.secondstring.MongeElkan", "com.wcohen.ss.MongeElkan"),
       scaler = identityScaler,
@@ -165,7 +165,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "jaro",
-      nativeFunction = "jaro",
+      nativeFunction = "ss_jaro",
       legacyUdfName = Some("legacy_jaro"),
       legacyClassNames = Seq("com.wcohen.secondstring.Jaro", "com.wcohen.ss.Jaro"),
       scaler = identityScaler,
@@ -176,7 +176,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "levenshtein",
-      nativeFunction = "levenshtein",
+      nativeFunction = "ss_levenshtein",
       legacyUdfName = None,
       legacyClassNames = Nil,
       scaler = identityScaler,
@@ -187,7 +187,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "jaccard",
-      nativeFunction = "jaccard",
+      nativeFunction = "ss_jaccard",
       legacyUdfName = Some("legacy_jaccard"),
       legacyClassNames = Seq("com.wcohen.secondstring.Jaccard", "com.wcohen.ss.Jaccard"),
       scaler = identityScaler,
@@ -198,7 +198,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "sorensen_dice",
-      nativeFunction = "sorensen_dice",
+      nativeFunction = "ss_sorensen_dice",
       legacyUdfName = None,
       legacyClassNames = Nil,
       scaler = identityScaler,
@@ -209,7 +209,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "overlap_coefficient",
-      nativeFunction = "overlap_coefficient",
+      nativeFunction = "ss_overlap_coefficient",
       legacyUdfName = None,
       legacyClassNames = Nil,
       scaler = identityScaler,
@@ -220,7 +220,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "cosine",
-      nativeFunction = "cosine",
+      nativeFunction = "ss_cosine",
       legacyUdfName = None,
       legacyClassNames = Nil,
       scaler = identityScaler,
@@ -231,7 +231,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "braun_blanquet",
-      nativeFunction = "braun_blanquet",
+      nativeFunction = "ss_braun_blanquet",
       legacyUdfName = None,
       legacyClassNames = Nil,
       scaler = identityScaler,
@@ -242,7 +242,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "lcs_similarity",
-      nativeFunction = "lcs_similarity",
+      nativeFunction = "ss_lcs_similarity",
       legacyUdfName = None,
       legacyClassNames = Nil,
       scaler = identityScaler,
@@ -253,7 +253,7 @@ private[fuzzy] object FuzzyTestingPipeline {
     ),
     MetricSpec(
       metric = "affine_gap",
-      nativeFunction = "affine_gap",
+      nativeFunction = "ss_affine_gap",
       legacyUdfName = None,
       legacyClassNames = Nil,
       scaler = identityScaler,

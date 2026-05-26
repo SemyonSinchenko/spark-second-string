@@ -35,7 +35,7 @@ The system SHALL generate seeded deterministic string pairs using a case-driven 
 - **THEN** pair relationships are produced by deterministic case builders for required cohorts and no fixed shared-prefix rule is applied to every pair
 
 ### Requirement: DataFrame-only evaluation pipeline
-The system SHALL evaluate native metrics and legacy baseline metrics exclusively through Spark DataFrame transformations.
+The system SHALL evaluate native metrics and legacy baseline metrics exclusively through Spark DataFrame transformations, and the fuzzy-testing SQL evaluation path SHALL invoke only registered `ss_`-prefixed SQL function names.
 
 #### Scenario: No local collection scoring path
 - **WHEN** the fuzz-testing workflow computes metric values
@@ -44,6 +44,11 @@ The system SHALL evaluate native metrics and legacy baseline metrics exclusively
 #### Scenario: Legacy baseline uses Spark UDF wrappers
 - **WHEN** baseline SecondString metrics are computed
 - **THEN** each baseline score is produced through Spark UDF wrappers over DataFrame columns
+
+#### Scenario: SQL metric calls use prefixed names
+- **WHEN** fuzzy-testing SQL expressions are generated for registered native metrics
+- **THEN** every invoked SQL function name starts with `ss_`
+- **THEN** no unprefixed SQL function name is invoked
 
 ### Requirement: Correlation reporting for parity analysis
 The system SHALL compute and report both Pearson and Spearman correlations between native metric outputs and scaled legacy baseline outputs using Spark ML correlation APIs.
