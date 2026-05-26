@@ -2,6 +2,38 @@
 
 Thanks for contributing to `spark-second-string`.
 
+## AI-assisted contributions
+
+**AI-generated pull requests are welcome.** They aren't second-class, and the rule below is not gatekeeping — it's a request for the inputs I need to review them at the speed your tool produced them.
+
+### The rule
+
+- **Trivial changes** (typos, dead links, comment fixes, single-line bug fixes, `scalafmt`-only diffs): just describe the change in the PR body. No extra paperwork.
+- **Everything else** (new features, refactors, new metrics, anything touching the public API, the build system, or CI): include an OpenSpec change folder describing intent, design, and tasks.
+
+### Why
+
+AI-generated code is often plausible-looking but architecturally surprising or quietly hallucinated. Reviewing it without the prompt and constraints feels like proofreading a translation without seeing the source — possible, but slow. The OpenSpec change folder gives me the same artifacts I produce when I drive an AI through a change, so I can cross-check the diff against intent the same way.
+
+### What to include
+
+Add `openspec/changes/<YYYY-MM-DD-short-slug>/` with:
+
+- `proposal.md` — one paragraph: what is changing and why.
+- `design.md` — the key decisions, the alternatives considered, and the constraints (e.g., "must keep SQL surface 2-arg", "must work on Spark 3.5 and 4.x").
+- `tasks.md` — the steps the AI followed, or the steps a reviewer should verify.
+- `specs/<area>/spec.md` — spec deltas, if the change updates an existing spec.
+
+See `openspec/changes/archive/` for dozens of well-formed examples. Recent ones such as `2026-05-26-fix-fuzzy-flow-legacy-secondstring-npe-race` and `2026-05-25-privatize-expression-case-classes` show the expected level of detail.
+
+### Tool-neutral
+
+OpenSpec is not vendor-locked — it works with [any coding agent supported by OpenSpec](https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md). The artifacts are plain Markdown — what matters is the *content*, not which tool generated it.
+
+### One thing I do not want
+
+Please do **not** paste raw conversation transcripts. They're long, contain personal context, and aren't what a reviewer needs. The OpenSpec folder is the artifact; the conversation that produced it is not.
+
 Run commands from the repository root unless noted otherwise.
 
 ## Prerequisites
