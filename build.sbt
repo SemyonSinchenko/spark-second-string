@@ -53,7 +53,10 @@ ThisBuild / developers := List(
   )
 )
 
-mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "1.0.0")
+mimaPreviousArtifacts := {
+  if (version.value.startsWith("0.")) Set.empty[ModuleID]
+  else Set(organization.value %% moduleName.value % "1.0.0")
+}
 
 // Required JVM options for Spark (ADD_OPENS)
 val sparkJavaOptions = Seq(

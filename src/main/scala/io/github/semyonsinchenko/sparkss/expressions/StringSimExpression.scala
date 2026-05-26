@@ -53,7 +53,7 @@ private[sparkss] abstract class StringSimExpression
 
   /** Null-safe evaluation of the similarity function.
     *
-    * If either input is null, returns null. Otherwise, casts inputs to strings and delegates to getSim.
+    * If either input is null, returns null. Otherwise, casts inputs to strings and delegates to evalSimilarity.
     *
     * @param left
     *   left input value

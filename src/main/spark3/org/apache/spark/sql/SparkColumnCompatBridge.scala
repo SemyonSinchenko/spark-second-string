@@ -2,6 +2,7 @@ package org.apache.spark.sql
 
 import org.apache.spark.sql.catalyst.expressions.Expression
 
+/** Internal class */
 object SparkColumnCompatBridge {
 
   def toExpression(column: Column): Expression = {
