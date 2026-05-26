@@ -22,7 +22,7 @@ private[sparkss] case class DoubleMetaphone(child: Expression) extends PhoneticE
   }
 }
 
-object DoubleMetaphone {
+private[sparkss] object DoubleMetaphone {
 
   private final val MaxCodeLength = 4
 

@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.{ImplicitCastInputTypes, UnaryE
 import org.apache.spark.sql.types.{DataType, StringType}
 import org.apache.spark.unsafe.types.UTF8String
 
-abstract class PhoneticExpression
+private[sparkss] abstract class PhoneticExpression
     extends UnaryExpression
     with ImplicitCastInputTypes
     with NullIntolerantCompat

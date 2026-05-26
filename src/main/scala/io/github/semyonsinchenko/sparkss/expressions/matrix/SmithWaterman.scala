@@ -47,7 +47,7 @@ private[sparkss] case class SmithWaterman(
   }
 }
 
-object SmithWaterman {
+private[sparkss] object SmithWaterman {
 
   private[sparkss] final val DefaultMatchScore = 2
   private[sparkss] final val DefaultMismatchPenalty = -1

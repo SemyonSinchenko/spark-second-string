@@ -35,7 +35,7 @@ private[sparkss] case class SorensenDice(left: Expression, right: Expression, ng
   }
 }
 
-object SorensenDice {
+private[sparkss] object SorensenDice {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
     similarity(left, right, 0)

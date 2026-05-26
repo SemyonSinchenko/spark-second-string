@@ -35,7 +35,7 @@ private[sparkss] case class OverlapCoefficient(left: Expression, right: Expressi
   }
 }
 
-object OverlapCoefficient {
+private[sparkss] object OverlapCoefficient {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
     similarity(left, right, 0)

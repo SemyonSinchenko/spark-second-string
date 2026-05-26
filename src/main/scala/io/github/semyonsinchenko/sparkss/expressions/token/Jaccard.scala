@@ -64,7 +64,7 @@ private[sparkss] case class Jaccard(left: Expression, right: Expression, ngramSi
   }
 }
 
-object Jaccard {
+private[sparkss] object Jaccard {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
     similarity(left, right, 0)

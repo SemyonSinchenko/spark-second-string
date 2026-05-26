@@ -46,7 +46,7 @@ private[sparkss] case class AffineGap(
   }
 }
 
-object AffineGap {
+private[sparkss] object AffineGap {
 
   private[sparkss] final val DefaultMismatchPenalty = -1
   private[sparkss] final val DefaultGapOpenPenalty = -2

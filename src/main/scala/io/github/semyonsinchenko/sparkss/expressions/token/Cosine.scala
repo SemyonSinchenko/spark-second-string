@@ -33,7 +33,7 @@ private[sparkss] case class Cosine(left: Expression, right: Expression, ngramSiz
   }
 }
 
-object Cosine {
+private[sparkss] object Cosine {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
     similarity(left, right, 0)

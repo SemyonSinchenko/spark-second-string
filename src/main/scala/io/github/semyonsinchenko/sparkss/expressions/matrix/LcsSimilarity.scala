@@ -23,7 +23,7 @@ private[sparkss] case class LcsSimilarity(left: Expression, right: Expression) e
   }
 }
 
-object LcsSimilarity {
+private[sparkss] object LcsSimilarity {
 
   private val workspace = new ThreadLocal[Array[Array[Int]]]
 

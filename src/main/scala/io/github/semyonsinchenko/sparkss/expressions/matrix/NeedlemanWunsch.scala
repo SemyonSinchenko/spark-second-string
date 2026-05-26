@@ -47,7 +47,7 @@ private[sparkss] case class NeedlemanWunsch(
   }
 }
 
-object NeedlemanWunsch {
+private[sparkss] object NeedlemanWunsch {
 
   private[sparkss] final val DefaultMatchScore = 1
   private[sparkss] final val DefaultMismatchPenalty = -1

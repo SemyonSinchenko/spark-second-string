@@ -22,7 +22,7 @@ private[sparkss] case class Levenshtein(left: Expression, right: Expression) ext
   }
 }
 
-object Levenshtein {
+private[sparkss] object Levenshtein {
 
   private val workspace = new ThreadLocal[Array[Array[Int]]]
 

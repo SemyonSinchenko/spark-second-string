@@ -44,7 +44,7 @@ private[sparkss] case class JaroWinkler(
   }
 }
 
-object JaroWinkler {
+private[sparkss] object JaroWinkler {
 
   private[sparkss] final val DefaultPrefixScale = 0.1
   private[sparkss] final val DefaultPrefixCap = 4

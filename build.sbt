@@ -53,6 +53,8 @@ ThisBuild / developers := List(
   )
 )
 
+mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "1.0.0")
+
 // Required JVM options for Spark (ADD_OPENS)
 val sparkJavaOptions = Seq(
   "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",

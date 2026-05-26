@@ -21,7 +21,7 @@ private[sparkss] case class Soundex(child: Expression) extends PhoneticExpressio
   }
 }
 
-object Soundex {
+private[sparkss] object Soundex {
 
   private val CodeMap: Array[Int] = {
     val map = Array.fill(26)(0)

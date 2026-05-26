@@ -52,7 +52,7 @@ private[sparkss] case class MongeElkan(
   }
 }
 
-object MongeElkan {
+private[sparkss] object MongeElkan {
 
   private[sparkss] final val DefaultInnerMetric = "jaro_winkler"
   private[sparkss] final val SupportedInnerMetrics = Set(

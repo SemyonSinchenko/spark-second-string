@@ -35,7 +35,7 @@ private[sparkss] case class BraunBlanquet(left: Expression, right: Expression, n
   }
 }
 
-object BraunBlanquet {
+private[sparkss] object BraunBlanquet {
 
   private[sparkss] def similarity(left: UTF8String, right: UTF8String): Double = {
     similarity(left, right, 0)

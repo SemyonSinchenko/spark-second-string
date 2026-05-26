@@ -83,7 +83,7 @@ private[sparkss] abstract class StringSimExpression
   }
 }
 
-abstract class TokenMetricExpression extends StringSimExpression {
+private[sparkss] abstract class TokenMetricExpression extends StringSimExpression {
 
   protected def evalTokenMetric(left: UTF8String, right: UTF8String): Double
 
@@ -98,7 +98,7 @@ abstract class TokenMetricExpression extends StringSimExpression {
   }
 }
 
-abstract class MatrixMetricExpression extends StringSimExpression {
+private[sparkss] abstract class MatrixMetricExpression extends StringSimExpression {
 
   protected def evalMatrixMetric(left: UTF8String, right: UTF8String): Double
 

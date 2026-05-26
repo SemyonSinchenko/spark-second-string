@@ -22,7 +22,7 @@ private[sparkss] case class Jaro(left: Expression, right: Expression) extends Ma
   }
 }
 
-object Jaro {
+private[sparkss] object Jaro {
 
   private val workspace = new ThreadLocal[Array[Array[Boolean]]]
 
