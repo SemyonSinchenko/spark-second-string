@@ -47,7 +47,7 @@ The pairs above your threshold form a graph; connected components groups them in
 
 Once you have clusters, they're small and independent. Apply business rules, manual review, per-cluster ranking, an LLM call — whatever you want. No longer a scale problem.
 
-## Why a dedicated library for step 2?
+### Why a dedicated library for step 2?
 
 | Approach | Pros | Cons |
 |---|---|---|
@@ -56,7 +56,7 @@ Once you have clusters, they're small and independent. Apply business rules, man
 | Spark built-ins only | Native, fast, no dependencies | Only `levenshtein` (raw `Int` distance, no normalization) and `soundex`; everything else has to be assembled from array primitives — see below |
 | `spark-second-string` | Native Catalyst expressions with codegen and ThreadLocal buffer reuse; 13 similarity metrics + phonetic codecs; fuzz-tested against SecondString as reference oracle | Slower than C-backed Python libs in pure micro-benchmarks; smaller algorithm catalogue than full NLP stacks |
 
-### What "built-ins only" actually looks like
+#### What "built-ins only" actually looks like
 
 In theory you can express Jaccard with array primitives. In practice, even character-trigram Jaccard — a one-line definition mathematically — becomes:
 
@@ -86,8 +86,56 @@ Word-level Jaccard via `split` is slightly less ugly but still naive on whitespa
 The equivalent with this library:
 
 ```sql
-SELECT ss_jaccard(a, b, 3) FROM pairs   -- character trigrams
-SELECT ss_jaccard(a, b)    FROM pairs   -- whitespace-tokenized words
+-- SQL: whitespace-tokenized words, defaults
+SELECT ss_jaccard(a, b) FROM pairs
+```
+
+```scala
+// Scala DSL: character trigrams via the parametric overload
+StringSimilarityFunctions.jaccard(col("a"), col("b"), 3)
 ```
 
 For Jaro, Jaro-Winkler, Smith-Waterman, Needleman-Wunsch, Monge-Elkan, and the rest there is no built-in at all — a UDF is the only fallback, which puts you back in row 1 of the table.
+
+## Design principles
+
+The library exposes two intentionally different surfaces, tuned to two different audiences.
+
+### Flow A — SQL / `expr(...)` for SQL and PySpark users
+
+Two-argument SQL functions with sane defaults — `ss_jaccard(a, b)`, `ss_jaro_winkler(a, b)`, `ss_levenshtein(a, b)`, and the rest of the `ss_*` family. No knobs. The defaults are the common-case choices: Jaccard tokenizes on whitespace, Jaro-Winkler uses the canonical prefix scale and cap, Monge-Elkan uses Jaro-Winkler as the inner metric, alignment metrics use standard match / mismatch / gap costs.
+
+Two ways to register:
+
+- `--conf spark.sql.extensions=io.github.semyonsinchenko.sparkss.sql.SparkSecondStringExtension` at cluster or session bootstrap. Works for SQL-only and PySpark setups with no driver-side Scala code.
+- `spark.registerStringSimilarityFunctions()` from Scala, after importing the implicit class from `StringSimilaritySparkSessionExtensions`.
+
+Once registered, PySpark users can call any function through `F.expr("ss_jaccard(a, b)")` like a native SQL function.
+
+### Flow B — Scala DSL `StringSimilarityFunctions` for library developers
+
+For JVM consumers embedding this library inside larger ER systems (Zingg-style, Splink-style, or custom in-house pipelines): every metric has parametric overloads — `ngramSize`, `prefixScale` / `prefixCap`, `matchScore` / `mismatchPenalty` / `gapPenalty`, Monge-Elkan `innerMetric`, affine-gap open / extend penalties — reachable from Scala or Java.
+
+```scala
+StringSimilarityFunctions.jaccard(col("a"), col("b"), 3)               // character trigrams
+StringSimilarityFunctions.smithWaterman(col("a"), col("b"), 2, -1, -1) // tuned alignment
+```
+
+### A note on py4j
+
+The Scala DSL was designed with `py4j` ergonomics in mind, even though a published PySpark wrapper is not part of this release. Concretely:
+
+- Every public method parameter is a Java primitive (`int`, `double`), `String`, or `org.apache.spark.sql.Column`.
+- No `Option`, `Seq`, `Map`, `Tuple`, type parameters, or implicit parameter lists.
+- "Default" forms are explicit zero-arg overloads, not Scala default arguments — py4j picks the right overload by arity without `apply$default$N` synthetic gymnastics.
+
+A thin in-house Python wrapper is roughly ten lines per metric:
+
+```python
+from pyspark.sql.column import Column, _to_java_column
+
+ss = spark.sparkContext._jvm.io.github.semyonsinchenko.sparkss.StringSimilarityFunctions
+score = Column(ss.jaccard(_to_java_column(left), _to_java_column(right), 3))
+```
+
+`py4j` compatibility is treated as a deliberate design constraint but is not part of the formal CI test matrix — treat as best-effort.
