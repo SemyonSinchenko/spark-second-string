@@ -6,8 +6,11 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.nio.file.{Files, Path}
+import java.util.concurrent.Executors
 import scala.jdk.CollectionConverters._
 import scala.math.abs
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
   private var spark: SparkSession = _
@@ -315,6 +318,67 @@ class FuzzyTestingSuite extends AnyFunSuite with BeforeAndAfterAll {
     }
 
     assert(mismatches.isEmpty, mismatches.mkString("\n"))
+  }
+
+  test("legacy baseline scoring remains stable for representative jaccard fixtures") {
+    val sparkSession = spark
+    import sparkSession.implicits._
+    FuzzyTestingPipeline.registerLegacyBaselines(spark)
+
+    val fixtures = Seq(
+      ("spark sql", "spark sql"),
+      ("kitten sitting", "kitten sitting"),
+      ("foo bar", "foo baz"),
+      ("", ""),
+      ("abc", "xyz")
+    ).toDF("left", "right")
+
+    val scored = FuzzyTestingPipeline
+      .scoredDataFrameForMetric(fixtures, "jaccard")
+      .select("second_string_scaled", "native_score")
+      .collect()
+
+    scored.foreach { row =>
+      if (!row.isNullAt(0) && !row.isNullAt(1)) {
+        val legacy = row.getDouble(0)
+        val native = row.getDouble(1)
+        assert(legacy >= 0.0 && legacy <= 1.0)
+        assert(native >= 0.0 && native <= 1.0)
+      }
+    }
+  }
+
+  test("legacy jaccard scorer backing udf is stable under concurrent invocation") {
+    val scorerClass = Class.forName(
+      "io.github.semyonsinchenko.sparkss.fuzzy.LegacySecondStringUdfs$LegacyScorer"
+    )
+    val constructor = scorerClass.getDeclaredConstructor(classOf[String])
+    constructor.setAccessible(true)
+    val scorer = constructor.newInstance("com.wcohen.secondstring.Jaccard")
+    val applyMethod = scorerClass.getMethod("apply", classOf[String], classOf[String])
+
+    val pool = Executors.newFixedThreadPool(4)
+    implicit val ec: ExecutionContext = ExecutionContext.fromExecutorService(pool)
+
+    try {
+      val futures = (1 to 8).map { workerId =>
+        Future {
+          var i = 0
+          while (i < 2000) {
+            val left = s"spark second string ${workerId}_$i"
+            val right = if (i % 3 == 0) s"spark second token ${workerId}_$i" else s"other token ${workerId}_$i"
+            val score = applyMethod.invoke(scorer, left, right).asInstanceOf[Double]
+            assert(!score.isNaN)
+            assert(score >= 0.0 && score <= 1.0)
+            i += 1
+          }
+        }
+      }
+
+      Await.result(Future.sequence(futures), 5.minutes)
+    } finally {
+      pool.shutdownNow()
+    }
   }
 
   test("excluded baseline metrics are explicit and justified") {

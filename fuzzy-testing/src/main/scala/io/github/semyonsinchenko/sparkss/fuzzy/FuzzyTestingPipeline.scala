@@ -691,35 +691,37 @@ private[fuzzy] object LegacySecondStringUdfs {
   private val ScoreMethodName = "score"
 
   private final case class LegacyScorer(className: String) extends ((String, String) => Double) with Serializable {
-    @transient private lazy val instanceAndMethod: (AnyRef, java.lang.reflect.Method) = {
-      val algorithmClass =
-        try {
-          Class.forName(className)
-        } catch {
-          case _: ClassNotFoundException =>
+    @transient private lazy val instanceAndMethodByThread = new ThreadLocal[(AnyRef, java.lang.reflect.Method)] {
+      override protected def initialValue(): (AnyRef, java.lang.reflect.Method) = {
+        val algorithmClass =
+          try {
+            Class.forName(className)
+          } catch {
+            case _: ClassNotFoundException =>
+              throw new IllegalStateException(
+                s"Legacy algorithm class '$className' is unavailable. Add legacy Java SecondString dependency to run fuzzy testing."
+              )
+          }
+
+        val scoreMethod = algorithmClass.getMethods
+          .find { method =>
+            method.getName == ScoreMethodName &&
+            method.getParameterCount == 2 &&
+            method.getParameterTypes.sameElements(Array(classOf[String], classOf[String]))
+          }
+          .getOrElse {
             throw new IllegalStateException(
-              s"Legacy algorithm class '$className' is unavailable. Add legacy Java SecondString dependency to run fuzzy testing."
+              s"Legacy algorithm class '$className' does not expose score(String, String)."
             )
-        }
+          }
 
-      val scoreMethod = algorithmClass.getMethods
-        .find { method =>
-          method.getName == ScoreMethodName &&
-          method.getParameterCount == 2 &&
-          method.getParameterTypes.sameElements(Array(classOf[String], classOf[String]))
-        }
-        .getOrElse {
-          throw new IllegalStateException(
-            s"Legacy algorithm class '$className' does not expose score(String, String)."
-          )
-        }
-
-      val instance = algorithmClass.getDeclaredConstructor().newInstance().asInstanceOf[AnyRef]
-      (instance, scoreMethod)
+        val instance = algorithmClass.getDeclaredConstructor().newInstance().asInstanceOf[AnyRef]
+        (instance, scoreMethod)
+      }
     }
 
     override def apply(left: String, right: String): Double = {
-      val (instance, scoreMethod) = instanceAndMethod
+      val (instance, scoreMethod) = instanceAndMethodByThread.get()
       scoreMethod.invoke(instance, left, right).asInstanceOf[Double]
     }
   }
