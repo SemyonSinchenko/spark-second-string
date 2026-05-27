@@ -1,5 +1,7 @@
 package io.github.semyonsinchenko.sparkss.expressions.token
 
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.TypeCheckFailure
+import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -49,5 +51,26 @@ class MongeElkanSuite extends AnyFunSuite {
 
     assert(asymmetric >= 0.0)
     assert(asymmetric <= 1.0)
+  }
+
+  test("analysis-time validation rejects unsupported innerMetric values") {
+    val invalidInnerMetric = MongeElkan(Literal("a"), Literal("b"), "invalid", 0).checkInputDataTypes()
+    val unsupportedInnerMetric = MongeElkan(Literal("a"), Literal("b"), "cosine", 0).checkInputDataTypes()
+
+    assert(invalidInnerMetric.isInstanceOf[TypeCheckFailure])
+    assert(unsupportedInnerMetric.isInstanceOf[TypeCheckFailure])
+
+    val invalidMessage = invalidInnerMetric.asInstanceOf[TypeCheckFailure].message
+    val unsupportedMessage = unsupportedInnerMetric.asInstanceOf[TypeCheckFailure].message
+
+    assert(invalidMessage.contains("innerMetric must be one of"))
+    assert(unsupportedMessage.contains("innerMetric must be one of"))
+    assert(invalidMessage.contains("jaro_winkler"))
+    assert(invalidMessage.contains("jaro"))
+    assert(invalidMessage.contains("levenshtein"))
+    assert(invalidMessage.contains("needleman_wunsch"))
+    assert(invalidMessage.contains("smith_waterman"))
+    assert(invalidMessage.contains("invalid"))
+    assert(unsupportedMessage.contains("cosine"))
   }
 }

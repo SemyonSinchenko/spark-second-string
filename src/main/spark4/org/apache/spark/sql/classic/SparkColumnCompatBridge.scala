@@ -3,6 +3,7 @@ package org.apache.spark.sql.classic
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Expression
 
+/** Internal API */
 object SparkColumnCompatBridge {
 
   def toExpression(column: Column): Expression = {
