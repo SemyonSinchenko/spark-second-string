@@ -53,6 +53,14 @@ class SparkSecondStringExtensionSuite extends AnyFunSuite {
     spark.sessionState.functionRegistry.listFunction().map(_.funcName).toSet.intersect(expectedFunctionNames)
   }
 
+  private def sqlDouble(spark: SparkSession, sqlExpr: String): Double = {
+    spark.sql(s"SELECT $sqlExpr AS score").head().getDouble(0)
+  }
+
+  private def sqlString(spark: SparkSession, sqlExpr: String): String = {
+    spark.sql(s"SELECT $sqlExpr AS value").head().getString(0)
+  }
+
   test("spark.sql.extensions auto-registers SQL functions") {
     withSparkSession(configureExtension = true) { spark =>
       val row = spark
@@ -92,6 +100,36 @@ class SparkSecondStringExtensionSuite extends AnyFunSuite {
       spark.registerStringSimilarityFunctions()
       val score = spark.sql("SELECT ss_levenshtein('kitten', 'sitting')").head().getDouble(0)
       assert(score > 0.0)
+    }
+  }
+
+  test("all registered SQL functions have at least one end-to-end SQL flow assertion") {
+    withSparkSession(configureExtension = true) { spark =>
+      val twoArgFunctions = Seq(
+        "ss_jaccard",
+        "ss_sorensen_dice",
+        "ss_overlap_coefficient",
+        "ss_cosine",
+        "ss_braun_blanquet",
+        "ss_monge_elkan",
+        "ss_levenshtein",
+        "ss_lcs_similarity",
+        "ss_jaro",
+        "ss_jaro_winkler",
+        "ss_needleman_wunsch",
+        "ss_smith_waterman",
+        "ss_affine_gap"
+      )
+
+      twoArgFunctions.foreach { fn =>
+        val score = sqlDouble(spark, s"$fn('spark second string', 'spark second string')")
+        assert(score === 1.0, s"Expected baseline score 1.0 for $fn")
+      }
+
+      assert(sqlString(spark, "ss_soundex('Robert')") === "R163")
+      assert(sqlString(spark, "ss_refined_soundex('Robert')").nonEmpty)
+      assert(sqlString(spark, "ss_double_metaphone('Robert')").nonEmpty)
+      assert(registeredFunctionNames(spark) === expectedFunctionNames)
     }
   }
 }
