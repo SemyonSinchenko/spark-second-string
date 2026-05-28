@@ -1403,6 +1403,27 @@ class StringSimExpressionSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(rows(1).isNullAt(2))
   }
 
+  test("phonetic expressions explicitly propagate null input at expression boundary") {
+    val s = spark
+    import s.implicits._
+
+    val frame = Seq(Some("Robert"), None).toDF("value")
+
+    val phoneticExpressions = Seq[(String, Column => Column)](
+      "soundex" -> ((input: Column) => StringSimilarityFunctions.soundex(input)),
+      "refined_soundex" -> ((input: Column) => StringSimilarityFunctions.refinedSoundex(input)),
+      "double_metaphone" -> ((input: Column) => StringSimilarityFunctions.doubleMetaphone(input))
+    )
+
+    phoneticExpressions.foreach { case (name, expression) =>
+      val rows = frame.select(expression(col("value")).as("encoded")).collect()
+      withClue(s"$name should remain null-intolerant for null row input") {
+        assert(rows(0).getString(0).nonEmpty)
+        assert(rows(1).isNullAt(0))
+      }
+    }
+  }
+
   test("phonetic expressions keep interpreted and codegen parity") {
     val s = spark
     import s.implicits._

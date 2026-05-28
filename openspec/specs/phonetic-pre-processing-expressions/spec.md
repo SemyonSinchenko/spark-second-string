@@ -14,11 +14,15 @@ The system SHALL provide unary Catalyst expressions for `soundex`, `refined_soun
 - **THEN** Catalyst analysis and execution succeed and return a similarity score using encoded values
 
 ### Requirement: Phonetic expressions are null-intolerant and string-typed
-The system SHALL accept string input, return string output, and propagate null input to null output for all phonetic expressions.
+The system SHALL accept string input, return string output, and propagate null input to null output for `soundex`, `refined_soundex`, and `double_metaphone`.
 
-#### Scenario: Null input propagates
+#### Scenario: Null input propagates for each phonetic expression
 - **WHEN** a phonetic expression receives a null input row value
 - **THEN** the expression output is null for that row
+
+#### Scenario: Null-intolerant contract is covered by explicit unit tests
+- **WHEN** the phonetic expression unit test suite is executed
+- **THEN** it includes dedicated null-propagation assertions for `soundex`, `refined_soundex`, and `double_metaphone`
 
 ### Requirement: Soundex implements canonical US Census behavior
 The system SHALL implement Soundex as uppercase first letter plus three digits, removing non-alphabetic characters, suppressing adjacent duplicate codes, and padding/truncating to exactly four characters.
