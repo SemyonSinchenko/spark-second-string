@@ -33,6 +33,7 @@ object LaikaTheme {
       ),
       projectLinks = Seq(),
       teasers = Seq(
+        Teaser("First-class SQL", "Spark Extension to register SQL functions")
         Teaser("Spark Native", "Low-level Catalyst expressions with code generation"),
         Teaser("Feature Rich", "Built-in ready to use metrics"),
         Teaser("Lightweight", "No external dependencies besides the Apache Spark itself"),
