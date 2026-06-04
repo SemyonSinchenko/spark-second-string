@@ -46,11 +46,6 @@ spark.registerStringSimilarityFunctions()
 spark.sql("SELECT ss_jaro_winkler(left_name, right_name) AS score FROM pairs")
 ```
 
-## Migration Note
-
-String-similarity Catalyst expression case classes are internal implementation details and are no longer a supported
-public construction API. Use `StringSimilarityFunctions` helpers as the public entry point for metric expressions.
-
 ## Development and Build Commands
 
 All contributor-focused commands (build/test, fuzzy testing, benchmarks, docs generation) are documented in

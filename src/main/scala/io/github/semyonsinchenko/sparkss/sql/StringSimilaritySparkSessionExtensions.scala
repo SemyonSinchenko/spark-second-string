@@ -18,6 +18,19 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
 
+/** Helper object that registers functions without needs to change spark-fonfigs.
+  *
+  * Consider this object as a workaround / alternative way to register functions.
+  *
+  * If you can change the spark-fonfs
+  * `--conf spark.sql.extensions=io.github.semyonsinchenko.sparkss.sql.SparkSecondStringExtension` use it.
+  *
+  * If you want to have a programmatic access to the DSL I would point you to the
+  * [[io.github.semyonsinchenko.sparkss.StringSimilarityFunctions]]
+  *
+  * This object is kind of workaround when you want to register functions as SQL but for some reason you cannot change
+  * spark's configurations.
+  */
 object StringSimilaritySparkSessionExtensions {
 
   private type FunctionBuilder = Seq[Expression] => Expression
@@ -230,6 +243,18 @@ object StringSimilaritySparkSessionExtensions {
     allFunctions.foreach { fn =>
       register(FunctionIdentifier(fn.name), new ExpressionInfo(fn.expressionClassName, fn.name), fn.builder)
     }
+  }
+
+  /** Unsafe method made for workaround usage (like via py4j).
+    *
+    * It is assumed that SparkSession exists! It modifies the FunctionRegistry of the existing SparkSession!
+    * SparkSession is called without checking! Not thead safe (and not safe at all)!
+    *
+    * Do not use it directly until you have reasons: read the object's scaladoc first.
+    */
+  def registerAllFunctionsPy4j(): Unit = {
+    val spark = SparkSession.getActiveSession.get
+    registerAllFunctions(spark.sessionState.functionRegistry.registerFunction)
   }
 
   implicit class StringSimilaritySparkSessionOps(private val spark: SparkSession) extends AnyVal {

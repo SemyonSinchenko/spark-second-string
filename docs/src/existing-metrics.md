@@ -4,9 +4,6 @@ All similarity metrics return a `Double` in the range **\[0.0, 1.0\]** where 1.0
 completely different. Phonetic encoders return a `String` encoding. Every metric is available through both the DataFrame
 DSL (`StringSimilarityFunctions`) and Spark SQL (`StringSimilaritySparkSessionExtensions`).
 
-> Migration note: Scala/Java DSL helpers were renamed from `monge_elkan` to `mongeElkan` and from `affine_gap` to
-> `affineGap`. SQL function names use the `ss_` prefix (for example, `ss_monge_elkan` and `ss_affine_gap`).
-
 ## Token-based metrics
 
 Token metrics split input strings into token sets and measure set overlap. By default tokens are whitespace-separated

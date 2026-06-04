@@ -4,7 +4,7 @@
 
 The core idea is to keep similarity scoring inside Spark execution, so teams can use broad and explainable string heuristics as an inexpensive stage before expensive model-based matching.
 
-## Where it fits: the ER pipeline at scale
+## Where it fits?
 
 Most large-scale entity-resolution / identity-resolution pipelines have the same four stages. The hard scale work is in stages 1–3; stage 4 stops being a scale problem because each cluster is independent and small.
 
@@ -49,12 +49,12 @@ Once you have clusters, they're small and independent. Apply business rules, man
 
 ### Why a dedicated library for step 2?
 
-| Approach | Pros | Cons |
-|---|---|---|
-| Custom Scala UDFs / wrapped Java libs (e.g., SecondString in a UDF) | Easy to write; reuse existing implementations | Crosses the Tungsten boundary every row; per-row scratch allocation; no codegen fusion with surrounding filters |
-| Python NLP libs (rapidfuzz, jellyfish) in vectorized UDFs | Rich algorithm catalogue; familiar to DS teams | Off-heap memory pressure; row → Arrow columnar → row marshalling around every call; harder to size executors |
-| Spark built-ins only | Native, fast, no dependencies | Only `levenshtein` (raw `Int` distance, no normalization) and `soundex`; everything else has to be assembled from array primitives — see below |
-| `spark-second-string` | Native Catalyst expressions with codegen and ThreadLocal buffer reuse; 13 similarity metrics + phonetic codecs; fuzz-tested against SecondString as reference oracle | Slower than C-backed Python libs in pure micro-benchmarks; smaller algorithm catalogue than full NLP stacks |
+| Approach                                                            | Pros                                                                                                                                                                 | Cons                                                                                                                                           |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Custom Scala UDFs / wrapped Java libs (e.g., SecondString in a UDF) | Easy to write; reuse existing implementations                                                                                                                        | Crosses the Tungsten boundary every row; per-row scratch allocation; no codegen fusion with surrounding filters                                |
+| Python NLP libs (rapidfuzz, jellyfish) in vectorized UDFs           | Rich algorithm catalogue; familiar to DS teams                                                                                                                       | Off-heap memory pressure; row → Arrow columnar → row marshalling around every call; harder to size executors                                   |
+| Spark built-ins only                                                | Native, fast, no dependencies                                                                                                                                        | Only `levenshtein` (raw `Int` distance, no normalization) and `soundex`; everything else has to be assembled from array primitives — see below |
+| `spark-second-string`                                               | Native Catalyst expressions with codegen and ThreadLocal buffer reuse; 13 similarity metrics + phonetic codecs; fuzz-tested against SecondString as reference oracle | Slower than C-backed Python libs in pure micro-benchmarks; smaller algorithm catalogue than full NLP stacks                                    |
 
 #### What "built-ins only" actually looks like
 
@@ -109,6 +109,12 @@ Two ways to register:
 
 - `--conf spark.sql.extensions=io.github.semyonsinchenko.sparkss.sql.SparkSecondStringExtension` at cluster or session bootstrap. Works for SQL-only and PySpark setups with no driver-side Scala code.
 - `spark.registerStringSimilarityFunctions()` from Scala, after importing the implicit class from `StringSimilaritySparkSessionExtensions`.
+- `io.github.semyonsinchenko.sparkss.sql.StringSimilaritySparkSessionExtensions.registerAllFunctionsPy4j()` from Py4j only if you cannot change spark's `conf` by any reason. Keep in mind that this method is unsafe and has side effects. It assumes that the `SparkSession` exists, that all the names are free and it modifies the existing `SparkSession` 's `functionRegistry` under the hood. I added this endpoint only to siplify the life of the PySpark users on some vendor-serverless-bla-bla deployment where the option of config's modification does not exists at all but user wants for any reason to use SQL-expressions instead of the DSL.
+
+
+```python
+spark._jvm.io.github.semyonsinchenko.sparkss.sql.StringSimilaritySparkSessionExtensions.registerAllFunctionsPy4j()
+```
 
 Once registered, PySpark users can call any function through `F.expr("ss_jaccard(a, b)")` like a native SQL function.
 
