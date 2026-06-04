@@ -19,6 +19,7 @@ ThisBuild / baseVersion := {
 }
 
 val generateDocsVariables = taskKey[Unit]("Generate Laika variable files from benchmark and fuzzy reports")
+val buildAndCopyScalaDoc = taskKey[Unit]("Build and copy ScalaDoc to docs/api")
 
 // Dynamic Scala version based on Spark version
 ThisBuild / scalaVersion := {
@@ -148,6 +149,7 @@ lazy val fuzzyTesting = Project("fuzzy-testing", file("fuzzy-testing"))
   .dependsOn(root)
 
 lazy val docs = project
+  .dependsOn(root)
   .in(file("docs"))
   .enablePlugins(LaikaPlugin)
   .settings(commonSettings: _*)
@@ -156,6 +158,8 @@ lazy val docs = project
     publish / skip := true,
     laikaTheme := LaikaTheme.getLaikaTheme((ThisBuild / baseVersion).value),
     laikaExtensions := Seq(GitHubFlavor, SyntaxHighlighting),
+    buildAndCopyScalaDoc := LaikaTheme
+      .copyAll(baseDirectory.value.toPath.resolve("src/api/scaladoc"), (root / Compile / doc).value.toPath),
     generateDocsVariables := {
       val repoRoot = baseDirectory.value.getParentFile
       val benchmarkReport = repoRoot / "benchmarks" / "target" / "reports" / "suite" / "compare-table.txt"
@@ -233,6 +237,6 @@ lazy val docs = project
       IO.write(directoryConf, merged)
     },
     laikaSite := (laikaSite dependsOn generateDocsVariables).value,
-    laikaHTML := (laikaHTML dependsOn generateDocsVariables).value,
+    laikaHTML := (laikaHTML dependsOn generateDocsVariables dependsOn buildAndCopyScalaDoc).value,
     Laika / sourceDirectories := Seq((ThisBuild / baseDirectory).value / "docs" / "src")
   )
