@@ -29,7 +29,7 @@ See docs pages in `docs/` for full usage and compatibility details. The short ve
 2. Use direct API helpers from `StringSimilarityFunctions`.
 3. Or register SQL functions through Spark session extensions.
 
-Example (direct API):
+**Example (direct API):**
 
 ```scala
 import io.github.semyonsinchenko.sparkss.StringSimilarityFunctions
@@ -37,13 +37,24 @@ import io.github.semyonsinchenko.sparkss.StringSimilarityFunctions
 df.select(StringSimilarityFunctions.jaroWinkler("left_name", "right_name").as("score"))
 ```
 
-Example (Spark SQL extension registration):
+**Example (Spark SQL extension registration):**
 
 ```scala
 import io.github.semyonsinchenko.sparkss.sql.StringSimilaritySparkSessionExtensions._
 
 spark.registerStringSimilarityFunctions()
 spark.sql("SELECT ss_jaro_winkler(left_name, right_name) AS score FROM pairs")
+```
+
+**Example (Spark SQL configuration):**
+
+Assuming you are running something on the cluster with Apache Spark 4.0.x
+
+```shell
+spark-submit \
+  --package io.github.semyonsinchenko:spark-second-string-spark4.0_2.13:0.0.1 \
+  --conf spark.sql.extensions=io.github.semyonsinchenko.sparkss.sql.SparkSecondStringExtension \
+  my-script
 ```
 
 ## Development and Build Commands

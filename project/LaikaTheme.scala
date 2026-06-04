@@ -39,9 +39,11 @@ object LaikaTheme {
           TextLink.internal(Root / "existing-metrics.md", "Supported Metrics"),
           TextLink.internal(Root / "fuzzy-testing.md", "Fuzzy Testing"),
           TextLink.internal(Root / "benchmarks.md", "Benchmarks"),
-          TextLink.internal(Root / "api" / "scaladoc" / "index.html", "API (Scaladoc)"),
+          TextLink.internal(Root / "api" / "scaladoc" / "index.html", "API (Scaladoc)")
         ),
-        projectLinks = Seq(),
+        projectLinks = Seq(
+          TextLink.external("https://github.com/SemyonSinchenko/spark-second-string", "GitHub")
+        ),
         teasers = Seq(
           Teaser("First-class SQL", "Spark Extension to register SQL functions"),
           Teaser("Spark Native", "Low-level Catalyst expressions with code generation"),
