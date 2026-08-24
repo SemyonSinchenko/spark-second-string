@@ -15,8 +15,7 @@ import io.github.semyonsinchenko.sparkss.expressions.token.OverlapCoefficient
 import io.github.semyonsinchenko.sparkss.expressions.token.SorensenDice
 import io.github.semyonsinchenko.sparkss.expressions.phonetic.{DoubleMetaphone, RefinedSoundex, Soundex}
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.FunctionIdentifier
-import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
+import org.apache.spark.sql.catalyst.expressions.Expression
 
 /** Helper object that registers functions without needs to change spark-fonfigs.
   *
@@ -238,10 +237,10 @@ object StringSimilaritySparkSessionExtensions {
   )
 
   private[sql] def registerAllFunctions(
-      register: (FunctionIdentifier, ExpressionInfo, FunctionBuilder) => Unit
+      register: (String, FunctionBuilder, String) => Unit
   ): Unit = {
     allFunctions.foreach { fn =>
-      register(FunctionIdentifier(fn.name), new ExpressionInfo(fn.expressionClassName, fn.name), fn.builder)
+      register(fn.name, fn.builder, fn.expressionClassName)
     }
   }
 
@@ -254,13 +253,23 @@ object StringSimilaritySparkSessionExtensions {
     */
   def registerAllFunctionsPy4j(): Unit = {
     val spark = SparkSession.getActiveSession.get
-    registerAllFunctions(spark.sessionState.functionRegistry.registerFunction)
+    val functionRegistry = spark.sessionState.functionRegistry
+    registerAllFunctions { (name, builder, _) =>
+      functionRegistry.createOrReplaceTempFunction(name, builder, "scala_udf")
+    }
   }
 
   implicit class StringSimilaritySparkSessionOps(private val spark: SparkSession) extends AnyVal {
 
+    /** Registers the SQL functions via Spark's temp-function API (the same path `spark.udf.register` uses). Spark
+      * qualifies the plain function name per version (session namespace on 4.2+), so no internal namespace (e.g.
+      * `system.builtin`) is hardcoded here.
+      */
     def registerStringSimilarityFunctions(): Unit = {
-      registerAllFunctions(spark.sessionState.functionRegistry.registerFunction)
+      val functionRegistry = spark.sessionState.functionRegistry
+      registerAllFunctions { (name, builder, _) =>
+        functionRegistry.createOrReplaceTempFunction(name, builder, "scala_udf")
+      }
     }
   }
 }
