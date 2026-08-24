@@ -690,6 +690,12 @@ private[fuzzy] object FuzzyTestingPipeline {
 private[fuzzy] object LegacySecondStringUdfs {
   private val ScoreMethodName = "score"
 
+  /** Legacy SecondString algorithm classes share a static, mutable `SimpleTokenizer.DEFAULT_TOKENIZER` (a TreeMap).
+    * Concurrent scoring from multiple executor threads corrupts that map (NPE inside TreeMap.fixAfterInsertion).
+    * Serialize all legacy scoring on a single JVM-wide lock so fuzzy runs are deterministic on any core count.
+    */
+  private val legacyScoringLock = new Object()
+
   private final case class LegacyScorer(className: String) extends ((String, String) => Double) with Serializable {
     @transient private lazy val instanceAndMethodByThread = new ThreadLocal[(AnyRef, java.lang.reflect.Method)] {
       override protected def initialValue(): (AnyRef, java.lang.reflect.Method) = {
@@ -722,7 +728,9 @@ private[fuzzy] object LegacySecondStringUdfs {
 
     override def apply(left: String, right: String): Double = {
       val (instance, scoreMethod) = instanceAndMethodByThread.get()
-      scoreMethod.invoke(instance, left, right).asInstanceOf[Double]
+      legacyScoringLock.synchronized {
+        scoreMethod.invoke(instance, left, right).asInstanceOf[Double]
+      }
     }
   }
 
